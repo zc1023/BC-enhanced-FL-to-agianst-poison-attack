@@ -30,8 +30,22 @@ for epoch in range(T):
 ```
 ## Structure
 - src
+    - client.py
+    - server.py
+    - todo
+- data
+    - mninst
+        - client 1
+        - client 2
+        - ……
+- checkpoint
+    - epoch1
+        - global
+        - client 1
+        - client 2
+        - ……
 
-    to do
+to do
 
 
 ## Result
