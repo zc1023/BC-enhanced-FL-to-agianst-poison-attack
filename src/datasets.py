@@ -10,7 +10,11 @@ Finally, we may be split by the hardness of data.
 from torch.utils.data import Dataset
 from torchvision import transforms
 from PIL import Image
+
 import os
+import shutil
+from torchvision.datasets import MNIST
+from torchvision.transforms.functional import to_pil_image
 
 class LocalDataset(Dataset):
     def __init__(self,data_dir,transform=None):
@@ -34,3 +38,26 @@ class LocalDataset(Dataset):
         if self.transform:
             image = self.transform(image)
         return image, label
+
+
+
+def split_mnist_by_class(mnist_dir, output_dir):
+    # 加载 MNIST 数据集
+    mnist = MNIST(mnist_dir, download=True)
+
+    # 遍历数据集中的每个图像和标签
+    for image_tensor, label in zip(mnist.data, mnist.targets):
+        # 将图像张量转换为 PIL.Image 对象
+        image = to_pil_image(image_tensor)
+
+        # 确定图像应保存到的目录
+        class_dir = os.path.join(output_dir, str(label.item()))
+        os.makedirs(class_dir, exist_ok=True)
+
+        # 保存图像
+        image_path = os.path.join(class_dir, f'{len(os.listdir(class_dir))}.png')
+        image.save(image_path)
+
+if __name__ =='__main__':
+    # 示例用法
+    split_mnist_by_class('data/mnist', 'data/mnist_by_class')
