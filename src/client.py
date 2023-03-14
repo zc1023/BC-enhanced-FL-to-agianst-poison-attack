@@ -69,7 +69,7 @@ class Client(object):
 
         for _ in range(self.local_epoch):
             for data,labels in self.dataloader:
-                data, labels = data.float().to(self.device), labels.long().to(self.device)
+                data, labels = data.to(self.device), labels.to(self.device)
   
                 self.optimizer.zero_grad()
                 outputs = self.model(data)
@@ -102,14 +102,20 @@ class Client(object):
         return test_loss, test_accuracy
 
 if __name__ == '__main__':
+    import os
+    import logging
+    logging.basicConfig(level=logging.INFO,
+                   format='%(asctime)s   %(levelname)s   %(message)s')
+
     from torchvision import models
+    
     my_transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.Grayscale(3),
         transforms.ToTensor(),
         transforms.Normalize((0.1307,0.1307,0.1307), (0.3081,0.3081,0.3081)),
     ])
-    model = models.resnet18()
+    model = models.resnet18(pretrained = True)
     in_features = model.fc.in_features
     model.fc = nn.Linear(in_features, 10)
     client0 = Client(
@@ -119,7 +125,20 @@ if __name__ == '__main__':
                     model = model,
                     )
     client0.setup(transform=my_transform,batchsize=1024)
-    for _ in range(10):
-        client0.client_update()
-        test_loss,test_acc = client0.client_evaluate()
-        print(test_acc)
+    client1 = Client(
+                    client_id=1,
+                    data_dir='data/mnist_by_class',
+                    device='cuda',
+                    model = model,
+                    )
+    client1.setup(transform=my_transform,batchsize=10240)
+    
+    for e in range(10):
+        if not os.path.exists(f'ckpt/{e}/'):
+            os.mkdir(f'ckpt/{e}/')
+
+        # client0.client_update()
+        client0.save_model(f'ckpt/{e}/client0.ckpt')
+        # client1.get_globalmodel(f'ckpt/{e}/client0.ckpt')
+        # test_loss,test_acc = client1.client_evaluate()
+        # logging.info(test_acc)
