@@ -8,7 +8,7 @@ import numpy as np
 import random
 import torch.nn as nn
 
-from datasets import LocalDataset
+from .datasets import LocalDataset
 from torch.utils.data import Dataset,DataLoader,random_split
 from torchvision import transforms
 from collections import OrderedDict
@@ -48,9 +48,15 @@ class Server(object):
         self.data = LocalDataset(data_dir=self.data_dir,transform=transform)
         self.dataloader = DataLoader(self.data,batch_size=batchsize,shuffle=True)
     
+    def save_model(self,ckpt_path):
+        torch.save(self.model.state_dict(),ckpt_path)
+    def get_globalmodel(self,globalmodel_ckpt_file):
+        globalmodel_ckpt = torch.load(globalmodel_ckpt_file)
+        self.model.load_state_dict(globalmodel_ckpt)
+
     def evaluate(self):
         """
-        Evaluate local model using local dataset 
+        I think, this part is unneccessary. It should be write in main.py to test the performance of the gloabl model
         """
         self.model.eval()
         self.model.to(self.device)
@@ -71,12 +77,13 @@ class Server(object):
 
         return test_loss, test_accuracy
     
-    def fed_avg(ckpt_files,global_model_path):
+    def fed_avg(self,ckpt_files,global_model_path):
         result = OrderedDict()
+        
         for file in ckpt_files:
             ckpt = torch.load(file)
             for k, v in ckpt.items():
-                print(k,v)
+                # print(k,v)
                 result[k] = result.get(k,torch.tensor(0.0)).float() + v
 
         for k in result:

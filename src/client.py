@@ -6,7 +6,7 @@ this file contains benign client and malious client
 import torch
 import torch.nn as nn
 
-from datasets import LocalDataset
+from .datasets import LocalDataset
 from torch.utils.data import Dataset,DataLoader,random_split
 from torchvision import transforms
 
@@ -77,7 +77,7 @@ class Client(object):
 
                 loss.backward()
                 self.optimizer.step() 
-    
+        print(f'client{self.id} finished')
     def client_evaluate(self):
         """
         Evaluate local model using local dataset 
