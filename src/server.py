@@ -9,7 +9,7 @@ import random
 import torch.nn as nn
 
 from .datasets import LocalDataset
-from torch.utils.data import Dataset,DataLoader,random_split
+from torch.utils.data import Dataset,DataLoader,
 from torchvision import transforms
 from collections import OrderedDict
 
@@ -77,6 +77,8 @@ class Server(object):
 
         return test_loss, test_accuracy
     
+    
+
     def fed_avg(self,ckpt_files,global_model_path):
         result = OrderedDict()
         

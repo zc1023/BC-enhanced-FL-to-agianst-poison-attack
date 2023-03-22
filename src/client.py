@@ -9,7 +9,16 @@ import torch.nn as nn
 from .datasets import LocalDataset
 from torch.utils.data import Dataset,DataLoader,random_split
 from torchvision import transforms
-
+import copy 
+def model_params_to_matrix(model):
+    # 初始化一个空的列表，用于存储模型参数
+    params_list = []
+    # 遍历模型的所有参数
+    for param in model.parameters():
+        # 将参数展平为一维，并添加到列表中
+        params_list.append(param.view(-1))
+    # 将列表中的所有参数堆叠成一个二维张量，并返回
+    return torch.cat(params_list)
 
 class Client(object):
     '''
@@ -78,6 +87,7 @@ class Client(object):
                 loss.backward()
                 self.optimizer.step() 
         print(f'client{self.id} finished')
+
     def client_evaluate(self):
         """
         Evaluate local model using local dataset 
@@ -101,6 +111,20 @@ class Client(object):
 
         return test_loss, test_accuracy
 
+    def caculate_flat_distance(self,model,distcance_type='l2'):
+        self_matrix = model_params_to_matrix(self.model)
+        other_matrix = model_params_to_matrix(model)
+        if self_matrix.shape != other_matrix.shape:
+            raise ValueError('two models are not in the same size')
+        if distcance_type == 'l2':
+            pdist = nn.PairwiseDistance(p=2)
+            return pdist(self_matrix.unsqueeze(0), other_matrix.unsqueeze(0))
+        elif distcance_type == 'cos':
+            cos_sim = nn.CosineSimilarity(dim=0)
+            return 1-cos_sim(self_matrix,other_matrix)
+        else:
+            raise KeyError('distance_type error')
+
 if __name__ == '__main__':
     import os
     import logging
@@ -118,11 +142,12 @@ if __name__ == '__main__':
     model = models.resnet18(pretrained = True)
     in_features = model.fc.in_features
     model.fc = nn.Linear(in_features, 10)
+    model0 = copy.deepcopy(model)
     client0 = Client(
                     client_id=0,
                     data_dir='data/mnist_by_class',
                     device='cuda',
-                    model = model,
+                    model = model0,
                     )
     client0.setup(transform=my_transform,batchsize=1024)
     client1 = Client(
@@ -132,13 +157,20 @@ if __name__ == '__main__':
                     model = model,
                     )
     client1.setup(transform=my_transform,batchsize=10240)
+    # dis = client0.caculate_flat_distance(client1.model,distcance_type='cos')
+    # print(dis)
     
-    for e in range(10):
+    for e in range(20):
         if not os.path.exists(f'ckpt/{e}/'):
             os.mkdir(f'ckpt/{e}/')
 
         # client0.client_update()
-        client0.save_model(f'ckpt/{e}/client0.ckpt')
-        # client1.get_globalmodel(f'ckpt/{e}/client0.ckpt')
+        # client0.save_model(f'ckpt/{e}/client0.ckpt')
+        client1.get_globalmodel(f'ckpt/{e-1}/global.ckpt')
+        client0.get_globalmodel(f'ckpt/{e}/client0.ckpt')
+        cos = client0.caculate_flat_distance(client1.model,distcance_type='cos')
+        l = client0.caculate_flat_distance(client1.model,distcance_type='l2')
+        print(f'epoch={e}\tL2 dis={l}')
+        print (f'epoch={e}\t cos dis={cos}')
         # test_loss,test_acc = client1.client_evaluate()
         # logging.info(test_acc)

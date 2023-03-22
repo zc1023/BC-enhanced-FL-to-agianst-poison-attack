@@ -4,8 +4,11 @@ from src.server import Server
 import torch
 import os
 import logging
+
+Type = 'noniid'
+
 logging.basicConfig(level=logging.INFO,
-                    filename='my.logiid',
+                    filename=f'my.log{Type}',
                     filemode='w',
                 format='%(asctime)s   %(levelname)s   %(message)s')
 
@@ -26,16 +29,16 @@ if __name__ == '__main__':
     '''init'''
 
     server = Server(model=model,seed=0,device="cuda",data_dir='data/mnist_by_class',training_nodes_num=2,validation_nodes_num=1)
-    server.setup(transform=my_transform,batchsize=10000)
+    server.setup(transform=my_transform,batchsize=8000)
 
     clients = []
     for i in range(10):
-        client = Client(i,data_dir=f"data/iid/client{i}/",device="cuda",model = model)
+        client = Client(i,data_dir=f"data/{Type}/client{i}/",device="cuda",model = model)
         client.setup(transform=my_transform,batchsize=1800,local_epoch=2)
         clients.append(client)
     
     for epoch in range(20):
-        ckpt_dir = f'ckpt/{epoch}/' 
+        ckpt_dir = f'ckpt/{Type}/{epoch}/' 
         if not os.path.exists(ckpt_dir):
             os.makedirs(ckpt_dir)
         
@@ -54,9 +57,10 @@ if __name__ == '__main__':
             client.get_globalmodel(globalmodel_path_pre)
             client.client_update()
             client.save_model(f'{ckpt_dir}client{client.id}.ckpt')
-            logging.info(f'client{client.id} store local model in {ckpt_dir}client{client.id}.ckpt')
+            testloss,testacc = client.client_evaluate()
+            logging.info(f'client{client.id} store local model in {ckpt_dir}client{client.id}.ckpt\n loss={testloss}\t acc={testacc}')
         marge_model_path = [ckpt_dir + file for file in  os.listdir(ckpt_dir)]
         server.fed_avg(marge_model_path,globalmodel_path)
         server.get_globalmodel(globalmodel_path)
         testloss,testacc = server.evaluate()
-        logging.info(f'epoch={epoch}\ntestloss={testloss}\ntestacc={testacc}')
+        logging.info(f'epoch={epoch}\ttestloss={testloss}\ttestacc={testacc}')
