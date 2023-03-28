@@ -88,18 +88,18 @@ class Client(object):
                 self.optimizer.step() 
         print(f'client{self.id} finished')
 
-    def client_evaluate(self):
+    def client_evaluate(self,model):
         """
         Evaluate local model using local dataset 
         """
-        self.model.eval()
-        self.model.to(self.device)
+        model.eval()
+        model.to(self.device)
 
         test_loss, correct = 0, 0
         with torch.no_grad():
             for data, labels in self.dataloader:
                 data, labels = data.float().to(self.device), labels.long().to(self.device)
-                outputs = self.model(data)
+                outputs = model(data)
                 test_loss += self.criterion(outputs, labels).item()
                 
                 predicted = outputs.argmax(dim=1, keepdim=True)
@@ -111,52 +111,47 @@ class Client(object):
 
         return test_loss, test_accuracy
 
-    def caculate_flat_distance(self,model,distcance_type='l2'):
+    def caculate_flat_distance(self,model,distance_type='cos'):
         self_matrix = model_params_to_matrix(self.model)
         other_matrix = model_params_to_matrix(model)
         if self_matrix.shape != other_matrix.shape:
             raise ValueError('two models are not in the same size')
-        if distcance_type == 'l2':
+        if distance_type == 'l2':
             pdist = nn.PairwiseDistance(p=2)
             return pdist(self_matrix.unsqueeze(0), other_matrix.unsqueeze(0))
-        elif distcance_type == 'cos':
+        elif distance_type == 'cos':
             cos_sim = nn.CosineSimilarity(dim=0)
             return 1-cos_sim(self_matrix,other_matrix)
         else:
             raise KeyError('distance_type error')
 
+    def caculate_score(self,model,alpha=0.9,beta=0.1,distance_type='cos'):
+        distance = self.caculate_flat_distance(model,distance_type=distance_type)
+        loss,acc = self.client_evaluate(model)
+        return alpha*distance+beta*acc
+    
 if __name__ == '__main__':
     import os
     import logging
     logging.basicConfig(level=logging.INFO,
                    format='%(asctime)s   %(levelname)s   %(message)s')
 
-    from torchvision import models
+    from model import MLP
     
-    my_transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.Grayscale(3),
-        transforms.ToTensor(),
-        transforms.Normalize((0.1307,0.1307,0.1307), (0.3081,0.3081,0.3081)),
-    ])
-    model = models.resnet18(pretrained = True)
-    in_features = model.fc.in_features
-    model.fc = nn.Linear(in_features, 10)
-    model0 = copy.deepcopy(model)
     client0 = Client(
                     client_id=0,
                     data_dir='data/mnist_by_class',
                     device='cuda',
-                    model = model0,
+                    model = MLP(),
                     )
-    client0.setup(transform=my_transform,batchsize=1024)
+    client0.setup(transform=None,batchsize=1024)
     client1 = Client(
                     client_id=1,
                     data_dir='data/mnist_by_class',
                     device='cuda',
-                    model = model,
+                    model = MLP(),
                     )
-    client1.setup(transform=my_transform,batchsize=10240)
+    client1.setup(transform=None,batchsize=10240)
     # dis = client0.caculate_flat_distance(client1.model,distcance_type='cos')
     # print(dis)
     
@@ -170,7 +165,7 @@ if __name__ == '__main__':
         client0.get_globalmodel(f'ckpt/{e}/client0.ckpt')
         cos = client0.caculate_flat_distance(client1.model,distcance_type='cos')
         l = client0.caculate_flat_distance(client1.model,distcance_type='l2')
-        print(f'epoch={e}\tL2 dis={l}')
-        print (f'epoch={e}\t cos dis={cos}')
+        # print(f'epoch={e}\tL2 dis={l}')
+        # print (f'epoch={e}\t cos dis={cos}')
         # test_loss,test_acc = client1.client_evaluate()
         # logging.info(test_acc)

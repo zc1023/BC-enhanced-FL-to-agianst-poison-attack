@@ -9,7 +9,7 @@ import random
 import torch.nn as nn
 
 from .datasets import LocalDataset
-from torch.utils.data import Dataset,DataLoader,
+from torch.utils.data import Dataset,DataLoader
 from torchvision import transforms
 from collections import OrderedDict
 
