@@ -55,7 +55,7 @@ def split_mnist_by_class(mnist_dir, output_dir):
         image_path = os.path.join(class_dir, f'{len(os.listdir(class_dir))}.png')
         image.save(image_path)
 
-def create_iid(datadir,storedir,n=10):
+def create_iid(datadir,storedir,intervals = 3,n=10):
     """
     this function is used to creat n iid data 
     """
@@ -65,7 +65,8 @@ def create_iid(datadir,storedir,n=10):
         files = os.listdir(subdir)
         for i,file in enumerate(files):
             file_path = os.path.join(subdir,file)
-            storesubdir = os.path.join(storedir,f'client{(i+1)%n}',label)
+            for j in range(intervals):
+                storesubdir = os.path.join(storedir,f'client{(i+j)%n}',label)
             if not os.path.exists(storesubdir):
                 os.makedirs(storesubdir)
             dst_file_path = os.path.join(storesubdir,file)

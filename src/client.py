@@ -6,7 +6,7 @@ this file contains benign client and malious client
 import torch
 import torch.nn as nn
 
-from .datasets import LocalDataset
+from datasets import LocalDataset
 from torch.utils.data import Dataset,DataLoader,random_split
 from torchvision import transforms
 import copy 
@@ -23,6 +23,11 @@ def model_params_to_matrix(model):
     # 将列表中的所有参数堆叠成一个二维张量，并返回
     return torch.cat(params_list).to('cpu')
 
+def random_replace(old,rate):
+        # rate is a approximate value 
+        new = torch.randint(0,10,old.shape)
+        mask = torch.bernoulli(torch.full(old.shape, rate)).bool()
+        old[mask] = new[mask]
 class Client(object):
     '''
     class for client object having its own private data and resources to train a model.
@@ -35,14 +40,18 @@ class Client(object):
         model: the model will be trained in fedarated learning
     '''
 
-    def __init__(self,client_id,data_dir,device,model,optim='sgd',malicous=False) -> None:
+    def __init__(self,client_id,data_dir,device,model,optim='adam',
+                flip_malicous_rate=0,grad_zore_rate=0,grad_scale_rate=0) -> None:
         self.id = client_id
         self.data_dir = data_dir
         self.device = device
-        self.malicous = malicous
-        self.model = model
+        self.model = copy.deepcopy(model)
         self.optim = optim
-
+        '''malicous attack rate'''
+        self.flip_malicous_rate = flip_malicous_rate
+        self.grad_zore_rate=grad_zore_rate
+        self.grad_scale_rate=grad_scale_rate
+        
 
     def get_globalmodel(self,globalmodel_ckpt_file):
         globalmodel_ckpt = torch.load(globalmodel_ckpt_file)
@@ -51,12 +60,13 @@ class Client(object):
     def save_model(self,localmodel_ckpt_path):
         torch.save(self.model.state_dict(),localmodel_ckpt_path)
 
-    def setup(self,transform=None,batchsize=128,local_epoch=1,lr=1e-3,train_factor=0.9,**client_config):
+    def setup(self,transform=None,batchsize=1024,local_epoch=1,lr=1e-3,train_factor=0.9,**client_config):
         # create dataloader
         if transform == None:
             transform = transforms.Compose([transforms.ToTensor(),])
         self.data = LocalDataset(data_dir=self.data_dir,transform=transform)
         self.dataloader = DataLoader(self.data,batch_size=batchsize,shuffle=True)
+        
         # train_size = int(train_factor*len(self.data))
         # test_size = len(self.data) - train_size
         # self.train_dataset, self.test_dataset = random_split(self.data, [train_size, test_size])
@@ -81,8 +91,12 @@ class Client(object):
 
         for _ in range(self.local_epoch):
             for data,labels in self.dataloader:
+                input(labels)
+                if self.flip_malicous_rate > 0:
+                    random_replace(labels,self.flip_malicous_rate)
+                input(labels)
                 data, labels = data.to(self.device), labels.to(self.device)
-  
+
                 self.optimizer.zero_grad()
                 outputs = self.model(data)
                 loss = self.criterion(outputs, labels)
@@ -113,7 +127,9 @@ class Client(object):
         test_accuracy = correct / len(self.data)
 
         return test_loss, test_accuracy
-
+    
+    '''caculate score'''
+    """============"""
     def caculate_flat_distance(self,model,distance_type='cos'):
         
         self_matrix = model_params_to_matrix(self.model)
@@ -130,13 +146,12 @@ class Client(object):
         else:
             raise KeyError('distance_type error')
 
-    def caculate_single_score(self,model,alpha=0.9,beta=0.1,distance_type='cos'):
+    def caculate_single_score(self,model,alpha=0.4,beta=0.6,distance_type='cos'):
         distance = self.caculate_flat_distance(model,distance_type=distance_type)
         loss,acc = self.client_evaluate(model)
         return (alpha*distance+beta*acc).item()
     
-    def caculate_scores(self,ckpt_path,client_ids,alpha=0.9,beta=0.1,distance_type='cos'):
-        
+    def caculate_scores(self,ckpt_path,client_ids,alpha=0.4,beta=0.6,distance_type='cos'):
         scores = {}
         model = copy.deepcopy(self.model)
         for client_id in client_ids:
@@ -150,7 +165,7 @@ class Client(object):
     def save_score(self,score_path,
                     scores: dict):
         np.save(score_path,scores)
-
+    """============"""
             
 if __name__ == '__main__':
     import os
@@ -165,29 +180,31 @@ if __name__ == '__main__':
                     data_dir='data/mnist_by_class',
                     device='cuda',
                     model = MLP(),
+                    flip_malicous_rate=0.5
                     )
     client0.setup(transform=None,batchsize=1024)
-    client1 = Client(
-                    client_id=1,
-                    data_dir='data/mnist_by_class',
-                    device='cuda',
-                    model = MLP(),
-                    )
-    client1.setup(transform=None,batchsize=10240)
-    # dis = client0.caculate_flat_distance(client1.model,distcance_type='cos')
-    # print(dis)
+    client0.client_update()
+    # client1 = Client(
+    #                 client_id=1,
+    #                 data_dir='data/mnist_by_class',
+    #                 device='cuda',
+    #                 model = mlp(),
+    #                 )
+    # client1.setup(transform=None,batchsize=10240)
+    # # dis = client0.caculate_flat_distance(client1.model,distcance_type='cos')
+    # # print(dis)
     
-    for e in range(20):
-        if not os.path.exists(f'ckpt/{e}/'):
-            os.mkdir(f'ckpt/{e}/')
+    # for e in range(20):
+    #     if not os.path.exists(f'ckpt/{e}/'):
+    #         os.mkdir(f'ckpt/{e}/')
 
-        # client0.client_update()
-        # client0.save_model(f'ckpt/{e}/client0.ckpt')
-        client1.get_globalmodel(f'ckpt/{e-1}/global.ckpt')
-        client0.get_globalmodel(f'ckpt/{e}/client0.ckpt')
-        cos = client0.caculate_flat_distance(client1.model,distcance_type='cos')
-        l = client0.caculate_flat_distance(client1.model,distcance_type='l2')
-        # print(f'epoch={e}\tL2 dis={l}')
-        # print (f'epoch={e}\t cos dis={cos}')
-        # test_loss,test_acc = client1.client_evaluate()
-        # logging.info(test_acc)
+    #     # client0.client_update()
+    #     # client0.save_model(f'ckpt/{e}/client0.ckpt')
+    #     client1.get_globalmodel(f'ckpt/{e-1}/global.ckpt')
+    #     client0.get_globalmodel(f'ckpt/{e}/client0.ckpt')
+    #     cos = client0.caculate_flat_distance(client1.model,distcance_type='cos')
+    #     l = client0.caculate_flat_distance(client1.model,distcance_type='l2')
+    #     # print(f'epoch={e}\tL2 dis={l}')
+    #     # print (f'epoch={e}\t cos dis={cos}')
+    #     # test_loss,test_acc = client1.client_evaluate()
+    #     # logging.info(test_acc)
