@@ -10,6 +10,9 @@ from .datasets import LocalDataset
 from torch.utils.data import Dataset,DataLoader,random_split
 from torchvision import transforms
 import copy 
+import numpy as np
+import os
+
 def model_params_to_matrix(model):
     # 初始化一个空的列表，用于存储模型参数
     params_list = []
@@ -18,7 +21,7 @@ def model_params_to_matrix(model):
         # 将参数展平为一维，并添加到列表中
         params_list.append(param.view(-1))
     # 将列表中的所有参数堆叠成一个二维张量，并返回
-    return torch.cat(params_list)
+    return torch.cat(params_list).to('cpu')
 
 class Client(object):
     '''
@@ -86,7 +89,7 @@ class Client(object):
 
                 loss.backward()
                 self.optimizer.step() 
-        print(f'client{self.id} finished')
+        print(f'{self.id} finished')
 
     def client_evaluate(self,model):
         """
@@ -112,8 +115,10 @@ class Client(object):
         return test_loss, test_accuracy
 
     def caculate_flat_distance(self,model,distance_type='cos'):
+        
         self_matrix = model_params_to_matrix(self.model)
         other_matrix = model_params_to_matrix(model)
+        
         if self_matrix.shape != other_matrix.shape:
             raise ValueError('two models are not in the same size')
         if distance_type == 'l2':
@@ -125,11 +130,28 @@ class Client(object):
         else:
             raise KeyError('distance_type error')
 
-    def caculate_score(self,model,alpha=0.9,beta=0.1,distance_type='cos'):
+    def caculate_single_score(self,model,alpha=0.9,beta=0.1,distance_type='cos'):
         distance = self.caculate_flat_distance(model,distance_type=distance_type)
         loss,acc = self.client_evaluate(model)
-        return alpha*distance+beta*acc
+        return (alpha*distance+beta*acc).item()
     
+    def caculate_scores(self,ckpt_path,client_ids,alpha=0.9,beta=0.1,distance_type='cos'):
+        
+        scores = {}
+        model = copy.deepcopy(self.model)
+        for client_id in client_ids:
+            ckpt_file = os.path.join(ckpt_path,client_id+'.ckpt')
+            ckpt = torch.load(ckpt_file)
+            model.load_state_dict(ckpt)
+            scores[client_id] = self.caculate_single_score(model,alpha,beta,distance_type)
+        
+        return scores
+
+    def save_score(self,score_path,
+                    scores: dict):
+        np.save(score_path,scores)
+
+            
 if __name__ == '__main__':
     import os
     import logging

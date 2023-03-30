@@ -7,11 +7,13 @@ import torch
 import numpy as np 
 import random
 import torch.nn as nn
-
+import numpy as np
 from .datasets import LocalDataset
 from torch.utils.data import Dataset,DataLoader
 from torchvision import transforms
 from collections import OrderedDict
+import warnings
+import os
 
 def setup_seed(seed):
      torch.manual_seed(seed)
@@ -77,18 +79,53 @@ class Server(object):
 
         return test_loss, test_accuracy
     
-    
+    def _gain_score(self,score_path):
+        score = (np.load(score_path,allow_pickle=True)).item()
+        return score
 
-    def fed_avg(self,ckpt_files,global_model_path):
+    def select(self,score_path):
+        # score is a dict
+        # select the clients whose score is upper than lowwer
+        score = self._gain_score(score_path)
+        sorted_by_value = sorted(score.items(),key= lambda x:x[1])
+        ordered_score = OrderedDict(sorted_by_value)
+        values = np.array(list(ordered_score.values()))
+        sigma = np.std(values)
+        mean = np.mean(values)
+        lowwer = mean - 3 * sigma
+        filtered_score = OrderedDict(filter(lambda x:x[1]>=lowwer,ordered_score.items()))
+
+        benign_clients = list(filtered_score.keys())
+        validation_clients = benign_clients[:self.validation_nodes_num]
+        if len(benign_clients) < self.validation_nodes_num:
+            warnings.warn('benign clients number is less than validation clients number')
+        return benign_clients,validation_clients
+
+    def avg_scores(self,scores_path,valide_client_ids,global_scores_path):
+        result = OrderedDict()
+
+        for valid_client_id in valide_client_ids:
+            file = os.path.join(scores_path,valid_client_id+'.npy')
+            score = np.load(file,allow_pickle=True).item()
+            for k,v in score.items():
+                result[k] = result.get(k,0.0)+v
+        for k in result:
+            result[k] /= len(valide_client_ids)
+        np.save(global_scores_path,result)
+
+        return result
+
+    def fed_avg(self,ckpt_path,bengin_client_ids,global_model_path):
         result = OrderedDict()
         
-        for file in ckpt_files:
+        for bengin_client_id in bengin_client_ids:
+            file = os.path.join(ckpt_path,bengin_client_id+'.ckpt')
             ckpt = torch.load(file)
             for k, v in ckpt.items():
                 # print(k,v)
                 result[k] = result.get(k,torch.tensor(0.0)).float() + v
 
         for k in result:
-            result[k] /= len(ckpt_files)
+            result[k] /= len(bengin_client_ids)
         torch.save(result,global_model_path)
         return result

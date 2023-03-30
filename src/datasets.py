@@ -74,8 +74,10 @@ def create_iid(datadir,storedir,n=10):
 
 if __name__ =='__main__':
     # 示例用法
+
+    split_mnist_by_class('data/mnist', 'data/mnist_by_class')
+
     create_iid('data/mnist_by_class','data/iid')
-    # split_mnist_by_class('data/mnist', 'data/mnist_by_class')
     # trans = transforms.Compose([transforms.ToTensor(),
 	# 		 transforms.Resize(256),
 	# 		 transforms.Normalize((0.5),(0.5))
