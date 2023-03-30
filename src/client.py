@@ -5,7 +5,7 @@ this file contains benign client and malious client
 '''
 import torch
 import torch.nn as nn
-
+import random
 from datasets import LocalDataset
 from torch.utils.data import Dataset,DataLoader,random_split
 from torchvision import transforms
@@ -24,10 +24,22 @@ def model_params_to_matrix(model):
     return torch.cat(params_list).to('cpu')
 
 def random_replace(old,rate):
-        # rate is a approximate value 
-        new = torch.randint(0,10,old.shape)
-        mask = torch.bernoulli(torch.full(old.shape, rate)).bool()
-        old[mask] = new[mask]
+    # rate is a approximate value 
+    new = torch.randint(0,10,old.shape)
+    mask = torch.bernoulli(torch.full(old.shape, rate)).bool()
+    old[mask] = new[mask]
+
+def random_zero(old,rate):
+    # rate is a approximate value 
+    new = torch.zeros(old.shape)
+    mask = torch.bernoulli(torch.full(old.shape, rate)).bool()
+    old[mask] = new[mask]
+
+def random_scale(old,rate,scale=2.0):
+    new = old * scale
+    mask = torch.bernoulli(torch.full(old.shape, rate)).bool()
+    old[mask] = new[mask]
+ 
 class Client(object):
     '''
     class for client object having its own private data and resources to train a model.
@@ -49,7 +61,7 @@ class Client(object):
         self.optim = optim
         '''malicous attack rate'''
         self.flip_malicous_rate = flip_malicous_rate
-        self.grad_zore_rate=grad_zore_rate
+        self.grad_zero_rate=grad_zore_rate
         self.grad_scale_rate=grad_scale_rate
         
 
@@ -91,10 +103,8 @@ class Client(object):
 
         for _ in range(self.local_epoch):
             for data,labels in self.dataloader:
-                input(labels)
                 if self.flip_malicous_rate > 0:
                     random_replace(labels,self.flip_malicous_rate)
-                input(labels)
                 data, labels = data.to(self.device), labels.to(self.device)
 
                 self.optimizer.zero_grad()
@@ -102,7 +112,19 @@ class Client(object):
                 loss = self.criterion(outputs, labels)
 
                 loss.backward()
-                self.optimizer.step() 
+
+                if self.grad_scale_rate > 0:
+                    for param in self.model.parameters():
+                        random_scale(param.grad,self.grad_scale_rate)
+                
+                if self.grad_zero_rate > 0:
+                    for param in self.model.parameters():
+                        random_zero(param.grad,self.grad_zero_rate)
+                
+
+                self.optimizer.step()
+        
+        
         print(f'{self.id} finished')
 
     def client_evaluate(self,model):
@@ -180,7 +202,9 @@ if __name__ == '__main__':
                     data_dir='data/mnist_by_class',
                     device='cuda',
                     model = MLP(),
-                    flip_malicous_rate=0.5
+                    flip_malicous_rate=0.5,
+                    grad_zore_rate=0.5,
+                    grad_scale_rate=0.5,
                     )
     client0.setup(transform=None,batchsize=1024)
     client0.client_update()

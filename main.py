@@ -14,28 +14,67 @@ logging.basicConfig(level=logging.INFO,
                     filemode='w',
                 format='%(asctime)s   %(levelname)s   %(message)s')
 
-import torch.nn as nn
 from src.model import MLP
+import torch.nn as nn
+import torchvision 
+from  torchvision import transforms
+# transform = transforms.Compose(
+#     [transforms.Resize(224), # 将图像大小调整为224x224，以适应resnet18的输入
+#      torchvision.transforms.Grayscale(num_output_channels=3),
+#      transforms.ToTensor(),
+#      transforms.Normalize((0.1307,), (0.3081,))]) # 使用MNIST数据集的均值和标准差
+# model = torchvision.models.resnet18(pretrained=True)
+# model.fc = torch.nn.Linear(model.fc.in_features, 10)
 
+model = MLP()
 if __name__ == '__main__':
-    
+    benign_clients_num = 7
+    flipping_attack_num = 1
+    grad_zero_num = 1
+    grad_scale_num = 1
     '''init'''
 
-    server = Server(model=MLP(),seed=0,device="cuda",data_dir='data/mnist_by_class',training_nodes_num=2,validation_nodes_num=2)
-    server.setup(transform=None,batchsize=8000)
+    server = Server(model=model,seed=0,device="cuda",data_dir='data/mnist_by_class',training_nodes_num=2,validation_nodes_num=2)
+    server.setup(transform=None,batchsize=1024)
     # =====
     # set up 
     clients = []
     scores = {}
-    for i in range(10):
-        client = Client(f'client{i}',data_dir=f"data/{Type}/client{i}/",device="cuda",model = MLP())
+    have_create_client_num=0
+    #benign clients
+    for i in range(benign_clients_num):
+        client = Client(f'client{i}',data_dir=f"data/{Type}/client{i}",device="cuda",model = model)
         scores[f'client{i}'] = 0
-        client.setup(transform=None,batchsize=4096,local_epoch=2)
+        client.setup(transform=None,batchsize=1024,local_epoch=2)
         clients.append(client)
+    have_create_client_num+=benign_clients_num
+
+    #malicous clients
+    for i in range(have_create_client_num,have_create_client_num+flipping_attack_num):
+        client = Client(f'client{i}',data_dir=f"data/{Type}/client{i}",device="cuda",model = model,
+                        flip_malicous_rate=0.5)
+        scores[f'client{i}'] = 0
+        client.setup(transform=None,batchsize=1024,local_epoch=2)
+        clients.append(client)
+    have_create_client_num+=flipping_attack_num
+    for i in range(have_create_client_num,have_create_client_num+grad_zero_num):
+        client = Client(f'client{i}',data_dir=f"data/{Type}/client{i}",device="cuda",model = model,
+                        grad_zore_rate=0.5)
+        scores[f'client{i}'] = 0
+        client.setup(transform=None,batchsize=1024,local_epoch=2)
+        clients.append(client)
+    have_create_client_num+=grad_zero_num
+    for i in range(have_create_client_num,have_create_client_num+grad_scale_num):
+        client = Client(f'client{i}',data_dir=f"data/{Type}/client{i}",device="cuda",model = model,
+                        grad_scale_rate=0.5)
+        scores[f'client{i}'] = 0
+        client.setup(transform=None,batchsize=1024,local_epoch=2)
+        clients.append(client)
+    have_create_client_num+=grad_scale_num
     # =====
     # print(scores)
 
-    for epoch in range(3):
+    for epoch in range(20):
         ckpt_dir = f'ckpt/{Type}/{epoch}/' 
         score_dir = f'score/{Type}/{epoch}'
         if not os.path.exists(ckpt_dir):
