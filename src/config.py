@@ -44,11 +44,11 @@ def create_argparser():
     )
 
     defaults = dict(
-        datasets = 'mnist',
+        datasets = 'MNIST',
         project_name = 'BC-enhanced-FL-to-agianst-poison-attack',
         model = 'MLP',
         seed = 0,
-        batch_size = 1024,
+        batch_size = 10240,
         epoch_num = 20,
         local_epoch_num = 2,
         data_type = 'iid',

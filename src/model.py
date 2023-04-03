@@ -5,7 +5,7 @@ import torch
 
 
 class MLP(nn.Module):
-    def __init__(self,dataset="cifar10"):
+    def __init__(self,dataset="mnist"):
         self.data = dataset
         if self.data == "mnist":
             input_size = 28*28

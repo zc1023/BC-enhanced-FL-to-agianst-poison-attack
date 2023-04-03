@@ -6,7 +6,7 @@ this file contains benign client and malious client
 import torch
 import torch.nn as nn
 import random
-from datasets import LocalDataset
+from .datasets import LocalDataset
 from torch.utils.data import Dataset,DataLoader,random_split
 from torchvision import transforms
 import copy 
@@ -111,7 +111,7 @@ class Client(object):
         for _ in range(self.local_epoch):
             for data,labels in self.dataloader:
                 if self.flip_malicous_rate > 0:
-                    random_replace(labels,self.flip_malicous_rate)
+                    target_replace(labels,self.flip_malicous_rate)
                 data, labels = data.to(self.device), labels.to(self.device)
 
                 self.optimizer.zero_grad()
@@ -215,15 +215,15 @@ if __name__ == '__main__':
 
     client0 = Client(
                     client_id=0,
-                    data_dir='data/CIFAR10/cifar10_by_class',
+                    data_dir='data/MNIST/mnist_by_class',
                     device='cuda',
                     model = MLP(),
-                    flip_malicous_rate=0.5,
+                    flip_malicous_rate=0.0,
                     # grad_zore_rate=0.5,
                     # grad_scale_rate=0.5,
                     )
 
-    client0.setup(transform=transform,batchsize=20480,lr=1e-3)
+    client0.setup(transform=None,batchsize=4096,lr=1e-3)
     for i in range(20):
         client0.client_update()
         testloss,testacc = client0.client_evaluate(client0.model)

@@ -33,7 +33,7 @@ if __name__ == '__main__':
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     batchsize = args.batch_size
     local_epoch = args.local_epoch_num
-    
+    datasets = args.datasets
     Type = args.data_type
     set_seed(args.seed)
     exp_name = f'Exp_{args.data_type}_{args.datasets}_{args.optimizer}_{args.seed}_validation_nodes_num_{args.validation_nodes_num}'
@@ -49,7 +49,7 @@ if __name__ == '__main__':
     if args.model == 'MLP':
         model = MLP()
     '''init'''
-    server = Server(model=model,seed=args.seed,device=device,data_dir='data/mnist_by_class',training_nodes_num=2,validation_nodes_num=args.validation_nodes_num)
+    server = Server(model=model,seed=args.seed,device=device,data_dir=f'data/{datasets}/mnist_by_class',training_nodes_num=2,validation_nodes_num=args.validation_nodes_num)
     server.setup(transform=None,batchsize=batchsize)
     
     if args.wandb_log:
@@ -70,7 +70,7 @@ if __name__ == '__main__':
     have_create_client_num=0
     #benign clients
     for i in range(args.benign_clients_num):
-        client = Client(f'client{i}',data_dir=f"data/{Type}/client{i}",device=device,model = model,
+        client = Client(f'client{i}',data_dir=f"data/{datasets}/{Type}/client{i}",device=device,model = model,
                         optim=args.optimizer)
         scores[f'client{i}'] = 0
         client.setup(transform=None,batchsize=batchsize,local_epoch=local_epoch,
@@ -80,7 +80,7 @@ if __name__ == '__main__':
 
     #malicous clients
     for i in range(have_create_client_num,have_create_client_num+args.flipping_attack_num):
-        client = Client(f'client{i}',data_dir=f"data/{Type}/client{i}",device=device,model = model,
+        client = Client(f'client{i}',data_dir=f"data/{datasets}/{Type}/client{i}",device=device,model = model,
                         optim=args.optimizer,flip_malicous_rate=args.flip_malicous_rate)
         scores[f'client{i}'] = 0
         client.setup(transform=None,batchsize=batchsize,local_epoch=local_epoch,
@@ -88,7 +88,7 @@ if __name__ == '__main__':
         clients.append(client)
     have_create_client_num+=args.flipping_attack_num
     for i in range(have_create_client_num,have_create_client_num+args.grad_zero_num):
-        client = Client(f'client{i}',data_dir=f"data/{Type}/client{i}",device=device,model = model,
+        client = Client(f'client{i}',data_dir=f"data/{datasets}/{Type}/client{i}",device=device,model = model,
                         optim=args.optimizer,
                         grad_zore_rate=args.grad_zore_rate)
         scores[f'client{i}'] = 0
@@ -97,7 +97,7 @@ if __name__ == '__main__':
         clients.append(client)
     have_create_client_num+=args.grad_zero_num
     for i in range(have_create_client_num,have_create_client_num+args.grad_scale_num):
-        client = Client(f'client{i}',data_dir=f"data/{Type}/client{i}",device=device,model = model,
+        client = Client(f'client{i}',data_dir=f"data/{datasets}/{Type}/client{i}",device=device,model = model,
                         optim=args.optimizer,
                         grad_scale_rate=args.grad_scale_rate)
         scores[f'client{i}'] = 0
