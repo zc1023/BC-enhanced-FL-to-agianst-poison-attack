@@ -6,13 +6,9 @@ import os
 import logging
 import json
 import numpy as np
-Type = 'iid'
 
+import wandb
 
-logging.basicConfig(level=logging.INFO,
-                    filename=f'my.log{Type}',
-                    filemode='w',
-                format='%(asctime)s   %(levelname)s   %(message)s')
 
 from src.model import MLP
 import torch.nn as nn
@@ -25,74 +21,113 @@ from  torchvision import transforms
 #      transforms.Normalize((0.1307,), (0.3081,))]) # 使用MNIST数据集的均值和标准差
 # model = torchvision.models.resnet18(pretrained=True)
 # model.fc = torch.nn.Linear(model.fc.in_features, 10)
+from src.config import create_argparser
 
-model = MLP()
+def set_seed(seed=0):
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
 if __name__ == '__main__':
-    benign_clients_num = 7
-    flipping_attack_num = 1
-    grad_zero_num = 1
-    grad_scale_num = 1
-    '''init'''
+    args = create_argparser().parse_args()
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    batchsize = args.batch_size
+    local_epoch = args.local_epoch_num
+    
+    Type = args.data_type
+    set_seed(args.seed)
+    exp_name = f'Exp_{args.data_type}_{args.datasets}_{args.optimizer}_{args.seed}_validation_nodes_num_{args.validation_nodes_num}'
+    
+    if not os.path.exists(exp_name):
+        os.makedirs(exp_name)
 
-    server = Server(model=model,seed=0,device="cuda",data_dir='data/mnist_by_class',training_nodes_num=2,validation_nodes_num=2)
-    server.setup(transform=None,batchsize=1024)
+    logging.basicConfig(level=logging.INFO,
+                        filename=f'{exp_name}/log',
+                        filemode='w',
+                        format='%(asctime)s   %(levelname)s   %(message)s')
+
+    if args.model == 'MLP':
+        model = MLP()
+    '''init'''
+    server = Server(model=model,seed=args.seed,device=device,data_dir='data/mnist_by_class',training_nodes_num=2,validation_nodes_num=args.validation_nodes_num)
+    server.setup(transform=None,batchsize=batchsize)
+    
+    if args.wandb_log:
+        if args.project_name is None:
+            raise ValueError("args.log_to_wandb set to True but args.project_name is None")
+
+        run = wandb.init(
+            project = args.project_name,
+            config = vars(args),
+            name = exp_name,
+            # resume= True,
+        )
+        wandb.watch(server.model)    
     # =====
     # set up 
     clients = []
     scores = {}
     have_create_client_num=0
     #benign clients
-    for i in range(benign_clients_num):
-        client = Client(f'client{i}',data_dir=f"data/{Type}/client{i}",device="cuda",model = model)
+    for i in range(args.benign_clients_num):
+        client = Client(f'client{i}',data_dir=f"data/{Type}/client{i}",device=device,model = model,
+                        optim=args.optimizer)
         scores[f'client{i}'] = 0
-        client.setup(transform=None,batchsize=1024,local_epoch=2)
+        client.setup(transform=None,batchsize=batchsize,local_epoch=local_epoch,
+                     lr=args.lr)
         clients.append(client)
-    have_create_client_num+=benign_clients_num
+    have_create_client_num+=args.benign_clients_num
 
     #malicous clients
-    for i in range(have_create_client_num,have_create_client_num+flipping_attack_num):
-        client = Client(f'client{i}',data_dir=f"data/{Type}/client{i}",device="cuda",model = model,
-                        flip_malicous_rate=0.5)
+    for i in range(have_create_client_num,have_create_client_num+args.flipping_attack_num):
+        client = Client(f'client{i}',data_dir=f"data/{Type}/client{i}",device=device,model = model,
+                        optim=args.optimizer,flip_malicous_rate=args.flip_malicous_rate)
         scores[f'client{i}'] = 0
-        client.setup(transform=None,batchsize=1024,local_epoch=2)
+        client.setup(transform=None,batchsize=batchsize,local_epoch=local_epoch,
+                     lr=args.lr)
         clients.append(client)
-    have_create_client_num+=flipping_attack_num
-    for i in range(have_create_client_num,have_create_client_num+grad_zero_num):
-        client = Client(f'client{i}',data_dir=f"data/{Type}/client{i}",device="cuda",model = model,
-                        grad_zore_rate=0.5)
+    have_create_client_num+=args.flipping_attack_num
+    for i in range(have_create_client_num,have_create_client_num+args.grad_zero_num):
+        client = Client(f'client{i}',data_dir=f"data/{Type}/client{i}",device=device,model = model,
+                        optim=args.optimizer,
+                        grad_zore_rate=args.grad_zore_rate)
         scores[f'client{i}'] = 0
-        client.setup(transform=None,batchsize=1024,local_epoch=2)
+        client.setup(transform=None,batchsize=batchsize,local_epoch=local_epoch,
+                     lr=args.lr)
         clients.append(client)
-    have_create_client_num+=grad_zero_num
-    for i in range(have_create_client_num,have_create_client_num+grad_scale_num):
-        client = Client(f'client{i}',data_dir=f"data/{Type}/client{i}",device="cuda",model = model,
-                        grad_scale_rate=0.5)
+    have_create_client_num+=args.grad_zero_num
+    for i in range(have_create_client_num,have_create_client_num+args.grad_scale_num):
+        client = Client(f'client{i}',data_dir=f"data/{Type}/client{i}",device=device,model = model,
+                        optim=args.optimizer,
+                        grad_scale_rate=args.grad_scale_rate)
         scores[f'client{i}'] = 0
-        client.setup(transform=None,batchsize=1024,local_epoch=2)
+        client.setup(transform=None,batchsize=batchsize,local_epoch=local_epoch,
+                     lr=args.lr)
         clients.append(client)
-    have_create_client_num+=grad_scale_num
+    have_create_client_num+=args.grad_scale_num
     # =====
     # print(scores)
 
-    for epoch in range(20):
-        ckpt_dir = f'ckpt/{Type}/{epoch}/' 
-        score_dir = f'score/{Type}/{epoch}'
+
+    for epoch in range(args.epoch_num):
+        ckpt_dir = f'{exp_name}/ckpt/{Type}/{epoch}/' 
+        score_dir = f'{exp_name}/score/{Type}/{epoch}'
         if not os.path.exists(ckpt_dir):
             os.makedirs(ckpt_dir)
         if not os.path.exists(score_dir):
             os.makedirs(score_dir)
         # model path
-        globalmodel_path_pre = f'ckpt/{Type}/{epoch-1}/global.ckpt'
-        globalmodel_path = f'ckpt/{Type}/{epoch}/global.ckpt'
+        globalmodel_path_pre = f'{exp_name}/ckpt/{Type}/{epoch-1}/global.ckpt'
+        globalmodel_path = f'{exp_name}/ckpt/{Type}/{epoch}/global.ckpt'
         # score path 
-        globalscore_path_pre = f'score/{Type}/{epoch-1}/global.score.npy'
-        globalscore_path = f'score/{Type}/{epoch}/global.score.npy'
+        globalscore_path_pre = f'{exp_name}/score/{Type}/{epoch-1}/global.score.npy'
+        globalscore_path = f'{exp_name}/score/{Type}/{epoch}/global.score.npy'
         
         if epoch==0:
-            if not os.path.exists(f'ckpt/{Type}/{epoch-1}/'):
-                os.makedirs(f'ckpt/{Type}/{epoch-1}')
-            if not os.path.exists(f'score/{Type}/{epoch-1}/'):
-                os.makedirs(f'score/{Type}/{epoch-1}')
+            if not os.path.exists(f'{exp_name}/ckpt/{Type}/{epoch-1}/'):
+                os.makedirs(f'{exp_name}/ckpt/{Type}/{epoch-1}')
+            if not os.path.exists(f'{exp_name}/score/{Type}/{epoch-1}/'):
+                os.makedirs(f'{exp_name}/score/{Type}/{epoch-1}')
 
             server.save_model(globalmodel_path_pre)
             server.get_globalmodel(globalmodel_path_pre)
@@ -127,10 +162,24 @@ if __name__ == '__main__':
             client.save_score(os.path.join(score_dir,client.id+'.npy'),scores)
         
         '''fed_avg'''
-        server.avg_scores(score_dir,validation_clients,globalscore_path)
-        benign_clients,validation_clients = server.select(globalscore_path)
-
+        if args.validation_nodes_num > 0:
+            scores = server.avg_scores(score_dir,validation_clients,globalscore_path)
+            benign_clients,validation_clients = server.select(globalscore_path)
+        else:
+            benign_clients = train_ids
+                
         server.fed_avg(ckpt_dir,benign_clients,globalmodel_path)
         server.get_globalmodel(globalmodel_path)
         testloss,testacc = server.evaluate()
+        if args.wandb_log:
+            wandb.log({
+                "scores":scores,
+                "benign_clients":benign_clients,
+                "validation_clients":validation_clients,
+                "testloss":testloss,
+                "testacc":testacc,
+            })
         logging.info(f'\nepoch={epoch}\ttestloss={testloss}\ttestacc={testacc}\n')
+    wandb.save(f'{exp_name}/log')
+    if args.wandb_log:
+        run.finish()

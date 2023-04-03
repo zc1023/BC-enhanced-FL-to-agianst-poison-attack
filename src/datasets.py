@@ -13,7 +13,7 @@ from PIL import Image
 
 import os
 import shutil
-from torchvision.datasets import MNIST
+from torchvision.datasets import MNIST,CIFAR10
 from torchvision.transforms.functional import to_pil_image
 
 
@@ -55,6 +55,21 @@ def split_mnist_by_class(mnist_dir, output_dir):
         image_path = os.path.join(class_dir, f'{len(os.listdir(class_dir))}.png')
         image.save(image_path)
 
+def split_cifar10_by_class(cifar10_dir, output_dir):
+    
+    cifar10 = CIFAR10(cifar10_dir, download=True)
+
+    if os.path.exists(output_dir):
+        return 
+    for image, label in (cifar10):
+        # image = to_pil_image(image_tensor)
+
+        class_dir = os.path.join(output_dir, str(label))
+        os.makedirs(class_dir, exist_ok=True)
+
+        image_path = os.path.join(class_dir, f'{len(os.listdir(class_dir))}.png')
+        image.save(image_path)
+
 def create_iid(datadir,storedir,intervals = 3,n=10):
     """
     this function is used to creat n iid data 
@@ -76,9 +91,9 @@ def create_iid(datadir,storedir,intervals = 3,n=10):
 if __name__ =='__main__':
     # 示例用法
 
-    split_mnist_by_class('data/mnist', 'data/mnist_by_class')
+    split_cifar10_by_class('data/cifar10', 'data/CIFAR10/cifat10_by_class')
 
-    create_iid('data/mnist_by_class','data/iid')
+    create_iid('data/CIFAR10/cifat10_by_class','data/CIFAR10/iid')
     # trans = transforms.Compose([transforms.ToTensor(),
 	# 		 transforms.Resize(256),
 	# 		 transforms.Normalize((0.5),(0.5))

@@ -87,7 +87,7 @@ class Server(object):
         # score is a dict
         # select the clients whose score is upper than lowwer
         score = self._gain_score(score_path)
-        sorted_by_value = sorted(score.items(),key= lambda x:x[1])
+        sorted_by_value = sorted(score.items(),key= lambda x:x[1], reverse=True)
         ordered_score = OrderedDict(sorted_by_value)
         values = np.array(list(ordered_score.values()))
         sigma = np.std(values)

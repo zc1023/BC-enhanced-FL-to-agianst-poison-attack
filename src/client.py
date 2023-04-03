@@ -25,13 +25,15 @@ def model_params_to_matrix(model):
 
 def random_replace(old,rate):
     # rate is a approximate value 
-    new = torch.randint(0,10,old.shape)
+    # rate is 0.9 * rate
+    new = torch.randint(0,10,old.shape).to(old.device)
     mask = torch.bernoulli(torch.full(old.shape, rate)).bool()
     old[mask] = new[mask]
 
 def random_zero(old,rate):
     # rate is a approximate value 
-    new = torch.zeros(old.shape)
+    new = torch.zeros(old.shape).to(old.device)
+    
     mask = torch.bernoulli(torch.full(old.shape, rate)).bool()
     old[mask] = new[mask]
 
@@ -53,7 +55,7 @@ class Client(object):
     '''
 
     def __init__(self,client_id,data_dir,device,model,optim='adam',
-                flip_malicous_rate=0,grad_zore_rate=0,grad_scale_rate=0) -> None:
+                flip_malicous_rate=0.0,grad_zore_rate=0.0,grad_scale_rate=0.0) -> None:
         self.id = client_id
         self.data_dir = data_dir
         self.device = device
@@ -72,7 +74,7 @@ class Client(object):
     def save_model(self,localmodel_ckpt_path):
         torch.save(self.model.state_dict(),localmodel_ckpt_path)
 
-    def setup(self,transform=None,batchsize=1024,local_epoch=1,lr=1e-3,train_factor=0.9,**client_config):
+    def setup(self,transform=None,batchsize=1024,local_epoch=1,lr=1e-5,train_factor=0.9,**client_config):
         # create dataloader
         if transform == None:
             transform = transforms.Compose([transforms.ToTensor(),])
@@ -173,7 +175,7 @@ class Client(object):
         loss,acc = self.client_evaluate(model)
         return (alpha*distance+beta*acc).item()
     
-    def caculate_scores(self,ckpt_path,client_ids,alpha=0.4,beta=0.6,distance_type='cos'):
+    def caculate_scores(self,ckpt_path,client_ids,alpha=0.2,beta=0.8,distance_type='cos'):
         scores = {}
         model = copy.deepcopy(self.model)
         for client_id in client_ids:
@@ -196,18 +198,31 @@ if __name__ == '__main__':
                    format='%(asctime)s   %(levelname)s   %(message)s')
 
     from model import MLP
-    
+    from torchvision import transforms
+
+    transform = transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomRotation(15),
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    ])
+
     client0 = Client(
                     client_id=0,
-                    data_dir='data/mnist_by_class',
+                    data_dir='data/CIFAR10/cifar10_by_class',
                     device='cuda',
                     model = MLP(),
-                    flip_malicous_rate=0.5,
-                    grad_zore_rate=0.5,
-                    grad_scale_rate=0.5,
+                    flip_malicous_rate=0.0,
+                    # grad_zore_rate=0.5,
+                    # grad_scale_rate=0.5,
                     )
-    client0.setup(transform=None,batchsize=1024)
-    client0.client_update()
+
+    client0.setup(transform=transform,batchsize=20480,lr=1e-3)
+    for i in range(20):
+        client0.client_update()
+        testloss,testacc = client0.client_evaluate(client0.model)
+        print(i,testacc)
     # client1 = Client(
     #                 client_id=1,
     #                 data_dir='data/mnist_by_class',

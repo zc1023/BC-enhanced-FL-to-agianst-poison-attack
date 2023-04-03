@@ -1,22 +1,42 @@
 import torch.nn as nn
 import torch
 # Neurons of each layer
-input_size = 784
-hidden_size = 500  
-num_classes = 10
+
+
 
 class MLP(nn.Module):
-    def __init__(self):
+    def __init__(self,dataset="cifar10"):
+        self.data = dataset
+        if self.data == "mnist":
+            input_size = 28*28
+            num_classes = 10
+        elif self.data == "cifar10":
+            input_size =32*32*3
+            num_classes =10
         super(MLP, self).__init__()
-        self.fc1 = nn.Linear(input_size, hidden_size) 
-        self.relu = nn.ReLU()
-        self.fc2 = nn.Linear(hidden_size, num_classes)  
-    
+        self.fc1 = nn.Linear(input_size, 512) 
+        self.relu1 = nn.ReLU()
+        self.fc2 = nn.Linear(512, 256)  
+        self.relu2 = nn.ReLU()
+        self.fc3 = nn.Linear(256, 128)
+        self.relu3 = nn.ReLU()
+        self.fc4 = nn.Linear(128, 64)
+        self.relu4 = nn.ReLU()
+        self.fc5 = nn.Linear(64, num_classes)
     def forward(self, x):
-        x = x.reshape(-1, 28*28)
+        if self.data == "mnist":
+            x = x.reshape(-1, 28*28)
+        elif self.data == "cifar10":
+            x = x.reshape(-1, 32*32*3)
         out = self.fc1(x)
-        out = self.relu(out)
+        out = self.relu1(out)
         out = self.fc2(out)
+        out = self.relu2(out)
+        out = self.fc3(out)
+        out = self.relu3(out)
+        out = self.fc4(out)
+        out = self.relu4(out)
+        out = self.fc5(out)
         return out
 
 if __name__ == '__main__':
