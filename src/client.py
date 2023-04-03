@@ -30,6 +30,11 @@ def random_replace(old,rate):
     mask = torch.bernoulli(torch.full(old.shape, rate)).bool()
     old[mask] = new[mask]
 
+def target_replace(old,rate,source=0,dist=8):
+    mask = torch.bernoulli(torch.full(old.shape, rate)).bool()
+    new = torch.where(old==source, torch.tensor(dist), old)
+    old[mask] = new[mask]
+
 def random_zero(old,rate):
     # rate is a approximate value 
     new = torch.zeros(old.shape).to(old.device)
@@ -203,7 +208,7 @@ if __name__ == '__main__':
     transform = transforms.Compose([
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
-        transforms.RandomRotation(15),
+        # transforms.RandomRotation(15),
         transforms.ToTensor(),
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     ])
@@ -213,7 +218,7 @@ if __name__ == '__main__':
                     data_dir='data/CIFAR10/cifar10_by_class',
                     device='cuda',
                     model = MLP(),
-                    flip_malicous_rate=0.0,
+                    flip_malicous_rate=0.5,
                     # grad_zore_rate=0.5,
                     # grad_scale_rate=0.5,
                     )
