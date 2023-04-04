@@ -10,7 +10,7 @@ import numpy as np
 import wandb
 
 
-from src.model import MLP,MNISTCNN
+from src.model import MLP,MNISTCNN,Cifar10CNN
 import torch.nn as nn
 import torchvision 
 from  torchvision import transforms
@@ -50,8 +50,10 @@ if __name__ == '__main__':
         model = MLP()
     elif args.model == "MNISTCNN":
         model = MNISTCNN()
+    elif args.model == "Cifar10CNN":
+        model = Cifar10CNN()
     '''init'''
-    server = Server(model=model,seed=args.seed,device=device,data_dir=f'data/{datasets}/mnist_by_class',training_nodes_num=2,validation_nodes_num=args.validation_nodes_num)
+    server = Server(model=model,seed=args.seed,device=device,data_dir=f'data/{datasets}/raw',training_nodes_num=2,validation_nodes_num=args.validation_nodes_num)
     server.setup(transform=None,batchsize=batchsize)
     
     if args.wandb_log:
@@ -110,7 +112,8 @@ if __name__ == '__main__':
     # =====
     # print(scores)
 
-    
+    alpha_init = 0.8
+    beta_init = 0.2
 
     for epoch in range(args.epoch_num):
         ckpt_dir = f'{exp_name}/ckpt/{Type}/{epoch}/' 
@@ -160,7 +163,9 @@ if __name__ == '__main__':
         '''' valide'''
         train_ids = [client.id for client in train_clients]        
         for client in valide_clients:
-            scores = client.caculate_scores(ckpt_dir,train_ids,alpha = 0.2,beta = 0.8)
+            scores = client.caculate_scores(ckpt_dir,train_ids,
+                                            alpha = alpha_init+(beta_init-alpha_init)*(epoch/args.epoch_num),
+                                            beta = beta_init-(beta_init-alpha_init)*(epoch/args.epoch_num))
             # print(scores)
             client.save_score(os.path.join(score_dir,client.id+'.npy'),scores)
         

@@ -94,7 +94,7 @@ class Client(object):
 
         self.criterion = nn.CrossEntropyLoss()
         if self.optim == 'sgd':
-            self.optimizer = torch.optim.SGD(self.model.parameters(), lr=lr)
+            self.optimizer = torch.optim.SGD(self.model.parameters(), lr=lr,momentum=0.5)
         elif self.optim == 'adam':
             self.optimizer =torch.optim.Adam(self.model.parameters(), lr=lr)
         else:
