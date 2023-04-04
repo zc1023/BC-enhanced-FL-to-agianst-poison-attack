@@ -10,7 +10,7 @@ import numpy as np
 import wandb
 
 
-from src.model import MLP
+from src.model import MLP,MNISTCNN
 import torch.nn as nn
 import torchvision 
 from  torchvision import transforms
@@ -48,6 +48,8 @@ if __name__ == '__main__':
 
     if args.model == 'MLP':
         model = MLP()
+    elif args.model == "MNISTCNN":
+        model = MNISTCNN()
     '''init'''
     server = Server(model=model,seed=args.seed,device=device,data_dir=f'data/{datasets}/mnist_by_class',training_nodes_num=2,validation_nodes_num=args.validation_nodes_num)
     server.setup(transform=None,batchsize=batchsize)
@@ -108,6 +110,7 @@ if __name__ == '__main__':
     # =====
     # print(scores)
 
+    
 
     for epoch in range(args.epoch_num):
         ckpt_dir = f'{exp_name}/ckpt/{Type}/{epoch}/' 
@@ -157,7 +160,7 @@ if __name__ == '__main__':
         '''' valide'''
         train_ids = [client.id for client in train_clients]        
         for client in valide_clients:
-            scores = client.caculate_scores(ckpt_dir,train_ids)
+            scores = client.caculate_scores(ckpt_dir,train_ids,alpha = 0.2,beta = 0.8)
             # print(scores)
             client.save_score(os.path.join(score_dir,client.id+'.npy'),scores)
         

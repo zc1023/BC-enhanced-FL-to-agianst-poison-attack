@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch
 # Neurons of each layer
-
+import torch.nn.functional as F
 
 
 class MLP(nn.Module):
@@ -39,15 +39,44 @@ class MLP(nn.Module):
         out = self.fc5(out)
         return out
 
+class MNISTCNN(nn.Module):
+
+    def __init__(self):
+        super(MNISTCNN, self).__init__()
+
+        self.layer1 = nn.Sequential(
+            nn.Conv2d(1, 16, kernel_size=5, padding=2),
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
+            nn.MaxPool2d(2))
+        self.layer2 = nn.Sequential(
+            nn.Conv2d(16, 32, kernel_size=5, padding=2),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.MaxPool2d(2))
+
+        self.fc = nn.Linear(7*7*32, 10)
+
+    def forward(self, x):
+        x = self.layer1(x)
+        x = self.layer2(x)
+
+        x = x.view(x.size(0), -1)
+
+        x = self.fc(x)
+
+        return x
+
+
 if __name__ == '__main__':
 
-    mlp = MLP()
+    mlp = MNISTCNN()
 
     num_epochs = 5
     batch_size = 1024 # Recall that we set it before
-    learning_rate = 0.001
+    learning_rate = 1e-3
     criterion = nn.CrossEntropyLoss()  
-    optimizer = torch.optim.SGD(mlp.parameters(), lr=learning_rate)
+    optimizer = torch.optim.Adam(mlp.parameters(), lr=learning_rate)
 
     # from torchvision import datasets,transforms
 
@@ -72,7 +101,7 @@ if __name__ == '__main__':
     from datasets import LocalDataset
     from torch.utils.data import Dataset,DataLoader,random_split
     from torchvision import transforms
-    data = LocalDataset(data_dir='data/mnist_by_class',transform=transforms.Compose([transforms.ToTensor(),]))
+    data = LocalDataset(data_dir='data/MNIST/mnist_by_class',transform=transforms.Compose([transforms.ToTensor(),]))
     train_loader = DataLoader(data,batch_size=batch_size,shuffle=True)
     for epoch in range(num_epochs):
         mlp.train()

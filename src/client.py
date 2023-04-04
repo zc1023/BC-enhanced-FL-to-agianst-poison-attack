@@ -202,7 +202,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO,
                    format='%(asctime)s   %(levelname)s   %(message)s')
 
-    from model import MLP
+    from model import MLP,MNISTCNN
     from torchvision import transforms
 
     transform = transforms.Compose([
@@ -217,13 +217,14 @@ if __name__ == '__main__':
                     client_id=0,
                     data_dir='data/MNIST/mnist_by_class',
                     device='cuda',
-                    model = MLP(),
-                    flip_malicous_rate=0.0,
+                    model = MNISTCNN(),
+                    optim='sgd',
+                    flip_malicous_rate=1.0,
                     # grad_zore_rate=0.5,
                     # grad_scale_rate=0.5,
                     )
 
-    client0.setup(transform=None,batchsize=4096,lr=1e-3)
+    client0.setup(transform=None,batchsize=1024,lr=1e-3)
     for i in range(20):
         client0.client_update()
         testloss,testacc = client0.client_evaluate(client0.model)
