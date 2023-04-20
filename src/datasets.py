@@ -91,9 +91,8 @@ def create_iid(datadir,storedir,intervals = 3,n=10):
 if __name__ =='__main__':
     # 示例用法
 
-    split_cifar10_by_class('data/cifar10', 'data/CIFAR10/cifat10_by_class')
-
-    create_iid('data/CIFAR10/cifat10_by_class','data/CIFAR10/iid')
+    split_cifar10_by_class('data/cifar10', 'data/CIFAR10/raw')
+    create_iid('data/CIFAR10/raw','data/CIFAR10/iid')
     # trans = transforms.Compose([transforms.ToTensor(),
 	# 		 transforms.Resize(256),
 	# 		 transforms.Normalize((0.5),(0.5))

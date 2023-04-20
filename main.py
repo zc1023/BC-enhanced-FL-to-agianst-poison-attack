@@ -1,6 +1,9 @@
 from src.client import Client
 from src.server import Server
 
+from src.datasets import split_cifar10_by_class,split_mnist_by_class,create_iid
+from src.model import MLP,MNISTCNN,Cifar10CNN
+
 import torch
 import os
 import logging
@@ -9,8 +12,6 @@ import numpy as np
 
 import wandb
 
-
-from src.model import MLP,MNISTCNN,Cifar10CNN
 import torch.nn as nn
 import torchvision 
 from  torchvision import transforms
@@ -36,13 +37,13 @@ if __name__ == '__main__':
     datasets = args.datasets
     Type = args.data_type
     set_seed(args.seed)
-    exp_name = f'Exp_{args.data_type}_{args.datasets}_{args.optimizer}_{args.seed}_validation_nodes_num_{args.validation_nodes_num}'
+    exp_name = f'Exp_{args.data_type}_{args.datasets}_{args.optimizer}_{args.seed}_validation_nodes_num_{args.validation_nodes_num}_flipping_attack_num_{args.flipping_attack_num}_grad_zero_num_{args.grad_zero_num}_grad_scale_num_{args.grad_scale_num}'
     
-    if not os.path.exists(exp_name):
-        os.makedirs(exp_name)
+    if not os.path.exists(f'log/{exp_name}'):
+        os.makedirs(f'log/{exp_name}')
 
     logging.basicConfig(level=logging.INFO,
-                        filename=f'{exp_name}/log',
+                        filename=f'log/{exp_name}/log',
                         filemode='w',
                         format='%(asctime)s   %(levelname)s   %(message)s')
 
@@ -52,6 +53,13 @@ if __name__ == '__main__':
         model = MNISTCNN()
     elif args.model == "Cifar10CNN":
         model = Cifar10CNN()
+
+    if args.datasets == 'CIFAR10':
+        split_cifar10_by_class('data/cifar10', 'data/CIFAR10/raw')
+        create_iid('data/CIFAR10/raw','data/CIFAR10/iid')
+    elif args.datasets == 'MNIST':
+        split_mnist_by_class('data/mnist', 'data/MNIST/raw')
+        create_iid('data/MNIST/raw','data/MNIST/iid')
     '''init'''
     server = Server(model=model,seed=args.seed,device=device,data_dir=f'data/{datasets}/raw',training_nodes_num=2,validation_nodes_num=args.validation_nodes_num)
     server.setup(transform=None,batchsize=batchsize)
@@ -64,7 +72,7 @@ if __name__ == '__main__':
             project = args.project_name,
             config = vars(args),
             name = exp_name,
-            # resume= True,
+            resume= True,
         )
         wandb.watch(server.model)    
     # =====
@@ -72,6 +80,7 @@ if __name__ == '__main__':
     clients = []
     scores = {}
     have_create_client_num=0
+    args.benign_clients_num = args.clients_num - args.flipping_attack_num - args.grad_zero_num -args.grad_scale_num 
     #benign clients
     for i in range(args.benign_clients_num):
         client = Client(f'client{i}',data_dir=f"data/{datasets}/{Type}/client{i}",device=device,model = model,
@@ -115,32 +124,45 @@ if __name__ == '__main__':
     alpha_init = 0.8
     beta_init = 0.2
 
-    for epoch in range(args.epoch_num):
-        ckpt_dir = f'{exp_name}/ckpt/{Type}/{epoch}/' 
-        score_dir = f'{exp_name}/score/{Type}/{epoch}'
+    ''' resume '''
+    if args.wandb_resume:
+        max = -1
+        folder_path = f'log/{exp_name}/ckpt/{Type}/'
+        for root,dirs,files in os.walk(folder_path):
+            for file in files:
+                if file.endswith('global.ckpt'):
+                    file_path = os.path.join(root,file)
+                    parent_dir = os.path.basename(os.path.dirname(file_path))
+                    a = int(parent_dir)
+                    if a > max:
+                        max = a
+    
+    for epoch in range(max+1,args.epoch_num):
+        ckpt_dir = f'log/{exp_name}/ckpt/{Type}/{epoch}/' 
+        score_dir = f'log/{exp_name}/score/{Type}/{epoch}'
         if not os.path.exists(ckpt_dir):
             os.makedirs(ckpt_dir)
         if not os.path.exists(score_dir):
             os.makedirs(score_dir)
         # model path
-        globalmodel_path_pre = f'{exp_name}/ckpt/{Type}/{epoch-1}/global.ckpt'
-        globalmodel_path = f'{exp_name}/ckpt/{Type}/{epoch}/global.ckpt'
+        globalmodel_path_pre = f'log/{exp_name}/ckpt/{Type}/{epoch-1}/global.ckpt'
+        globalmodel_path = f'log/{exp_name}/ckpt/{Type}/{epoch}/global.ckpt'
         # score path 
-        globalscore_path_pre = f'{exp_name}/score/{Type}/{epoch-1}/global.score.npy'
-        globalscore_path = f'{exp_name}/score/{Type}/{epoch}/global.score.npy'
+        globalscore_path_pre = f'log/{exp_name}/score/{Type}/{epoch-1}/global.score.npy'
+        globalscore_path = f'log/{exp_name}/score/{Type}/{epoch}/global.score.npy'
         
         if epoch==0:
-            if not os.path.exists(f'{exp_name}/ckpt/{Type}/{epoch-1}/'):
-                os.makedirs(f'{exp_name}/ckpt/{Type}/{epoch-1}')
-            if not os.path.exists(f'{exp_name}/score/{Type}/{epoch-1}/'):
-                os.makedirs(f'{exp_name}/score/{Type}/{epoch-1}')
+            if not os.path.exists(f'log/{exp_name}/ckpt/{Type}/{epoch-1}/'):
+                os.makedirs(f'log/{exp_name}/ckpt/{Type}/{epoch-1}')
+            if not os.path.exists(f'log/{exp_name}/score/{Type}/{epoch-1}/'):
+                os.makedirs(f'log/{exp_name}/score/{Type}/{epoch-1}')
 
             server.save_model(globalmodel_path_pre)
+            np.save(globalscore_path_pre,scores)
+        if epoch == max+1:
             server.get_globalmodel(globalmodel_path_pre)
             testloss,testacc = server.evaluate()
             logging.info(f'testloss={testloss}\ntestacc={testacc}')
-            
-            np.save(globalscore_path_pre,scores)
             benign_clients,validation_clients = server.select(globalscore_path_pre)
         
         train_clients = []
@@ -188,6 +210,7 @@ if __name__ == '__main__':
                 "testacc":testacc,
             })
         logging.info(f'\nepoch={epoch}\ttestloss={testloss}\ttestacc={testacc}\n')
-    wandb.save(f'{exp_name}/log')
+    
     if args.wandb_log:
+        wandb.save(f'log/{exp_name}/log')
         run.finish()

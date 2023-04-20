@@ -28,23 +28,26 @@ def random_replace(old,rate):
     # rate is 0.9 * rate
     new = torch.randint(0,10,old.shape).to(old.device)
     mask = torch.bernoulli(torch.full(old.shape, rate)).bool()
+    new = new.type(old.type())
     old[mask] = new[mask]
 
 def target_replace(old,rate,source=0,dist=8):
     mask = torch.bernoulli(torch.full(old.shape, rate)).bool()
     new = torch.where(old==source, torch.tensor(dist), old)
+    new = new.type(old.type())
     old[mask] = new[mask]
 
 def random_zero(old,rate):
     # rate is a approximate value 
-    new = torch.zeros(old.shape).to(old.device)
-    
+    new = torch.zeros(old.shape) 
     mask = torch.bernoulli(torch.full(old.shape, rate)).bool()
+    new = new.type(old.type())
     old[mask] = new[mask]
 
 def random_scale(old,rate,scale=2.0):
     new = old * scale
     mask = torch.bernoulli(torch.full(old.shape, rate)).bool()
+    new = new.type(old.type())
     old[mask] = new[mask]
  
 class Client(object):
@@ -60,7 +63,7 @@ class Client(object):
     '''
 
     def __init__(self,client_id,data_dir,device,model,optim='adam',
-                flip_malicous_rate=0.0,grad_zore_rate=0.0,grad_scale_rate=0.0) -> None:
+                flip_malicous_rate=0.0,grad_zero_rate=0.0,grad_scale_rate=0.0) -> None:
         self.id = client_id
         self.data_dir = data_dir
         self.device = device
@@ -68,7 +71,7 @@ class Client(object):
         self.optim = optim
         '''malicous attack rate'''
         self.flip_malicous_rate = flip_malicous_rate
-        self.grad_zero_rate=grad_zore_rate
+        self.grad_zero_rate=grad_zero_rate
         self.grad_scale_rate=grad_scale_rate
         
 
@@ -76,7 +79,7 @@ class Client(object):
         globalmodel_ckpt = torch.load(globalmodel_ckpt_file)
         self.model.load_state_dict(globalmodel_ckpt)
     
-    def save_model(self,localmodel_ckpt_path):
+    def save_model(self,localmodel_ckpt_path):                
         torch.save(self.model.state_dict(),localmodel_ckpt_path)
 
     def setup(self,transform=None,batchsize=1024,local_epoch=1,lr=1e-5,train_factor=0.9,**client_config):
@@ -110,8 +113,10 @@ class Client(object):
 
         for _ in range(self.local_epoch):
             for data,labels in self.dataloader:
+                
+                '''flipping labels attack'''
                 if self.flip_malicous_rate > 0:
-                    target_replace(labels,self.flip_malicous_rate)
+                    random_replace(labels,self.flip_malicous_rate)
                 data, labels = data.to(self.device), labels.to(self.device)
 
                 self.optimizer.zero_grad()
@@ -119,19 +124,14 @@ class Client(object):
                 loss = self.criterion(outputs, labels)
 
                 loss.backward()
-
-                if self.grad_scale_rate > 0:
-                    for param in self.model.parameters():
-                        random_scale(param.grad,self.grad_scale_rate)
-                
-                if self.grad_zero_rate > 0:
-                    for param in self.model.parameters():
-                        random_zero(param.grad,self.grad_zero_rate)
-                
-
                 self.optimizer.step()
-        
-        
+
+        for name,param in self.model.state_dict().items():
+            if self.grad_zero_rate > 0:
+                random_zero(param,self.grad_zero_rate)
+            if self.grad_scale_rate > 0:
+                random_scale(param,self.grad_scale_rate)
+
         print(f'{self.id} finished')
 
     def client_evaluate(self,model):
@@ -202,7 +202,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO,
                    format='%(asctime)s   %(levelname)s   %(message)s')
 
-    from model import MLP,MNISTCNN
+    from model import MLP,MNISTCNN,Cifar10CNN
     from torchvision import transforms
 
     transform = transforms.Compose([
@@ -215,16 +215,16 @@ if __name__ == '__main__':
 
     client0 = Client(
                     client_id=0,
-                    data_dir='data/MNIST/mnist_by_class',
+                    data_dir='data/CIFAR10/raw',
                     device='cuda',
-                    model = MNISTCNN(),
+                    model = Cifar10CNN(),
                     optim='sgd',
-                    flip_malicous_rate=1.0,
-                    # grad_zore_rate=0.5,
-                    # grad_scale_rate=0.5,
+                    # flip_malicous_rate=1.0,
+                    grad_zero_rate=0.0,
+                    grad_scale_rate=0.5,
                     )
 
-    client0.setup(transform=None,batchsize=1024,lr=1e-3)
+    client0.setup(transform=None,batchsize=1024,lr=1e-2)
     for i in range(20):
         client0.client_update()
         testloss,testacc = client0.client_evaluate(client0.model)

@@ -116,57 +116,60 @@ class Cifar10CNN(nn.Module):
 
 if __name__ == '__main__':
 
-    mlp = MNISTCNN()
+    # mlp = MNISTCNN()
 
-    num_epochs = 5
-    batch_size = 1024 # Recall that we set it before
-    learning_rate = 1e-3
-    criterion = nn.CrossEntropyLoss()  
-    optimizer = torch.optim.Adam(mlp.parameters(), lr=learning_rate)
+    # num_epochs = 5
+    # batch_size = 1024 # Recall that we set it before
+    # learning_rate = 1e-3
+    # criterion = nn.CrossEntropyLoss()  
+    # optimizer = torch.optim.Adam(mlp.parameters(), lr=learning_rate)
 
-    # from torchvision import datasets,transforms
+    # # from torchvision import datasets,transforms
 
-    # #导入训练数据
-    # train_dataset = datasets.MNIST(root='data/mnist',                #数据集保存路径
-    #                             train=True,                      #是否作为训练集
-    #                             transform=transforms.ToTensor(), #数据如何处理, 可以自己自定义
-    #                             download=True)                  #路径下没有的话, 可以下载
+    # # #导入训练数据
+    # # train_dataset = datasets.MNIST(root='data/mnist',                #数据集保存路径
+    # #                             train=True,                      #是否作为训练集
+    # #                             transform=transforms.ToTensor(), #数据如何处理, 可以自己自定义
+    # #                             download=True)                  #路径下没有的话, 可以下载
                                 
-    # #导入测试数据
-    # test_dataset = datasets.MNIST(root='data/mnist',
-    #                             train=False,
-    #                             transform=transforms.ToTensor())
-    # train_loader = torch.utils.data.DataLoader(dataset=train_dataset, #分批
-    #                                        batch_size=batch_size,
-    #                                        shuffle=True)          #随机分批
+    # # #导入测试数据
+    # # test_dataset = datasets.MNIST(root='data/mnist',
+    # #                             train=False,
+    # #                             transform=transforms.ToTensor())
+    # # train_loader = torch.utils.data.DataLoader(dataset=train_dataset, #分批
+    # #                                        batch_size=batch_size,
+    # #                                        shuffle=True)          #随机分批
 
-    # test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
-    #                                       batch_size=batch_size,
-    #                                       shuffle=False)
+    # # test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
+    # #                                       batch_size=batch_size,
+    # #                                       shuffle=False)
 
-    from datasets import LocalDataset
-    from torch.utils.data import Dataset,DataLoader,random_split
-    from torchvision import transforms
-    data = LocalDataset(data_dir='data/MNIST/mnist_by_class',transform=transforms.Compose([transforms.ToTensor(),]))
-    train_loader = DataLoader(data,batch_size=batch_size,shuffle=True)
-    for epoch in range(num_epochs):
-        mlp.train()
-        for i, (images, labels) in enumerate(train_loader):
-            outputs = mlp(images)
-            loss = criterion(outputs, labels)
-            optimizer.zero_grad()                          #清零梯度
-            loss.backward()                                #反向求梯度
-            optimizer.step()
+    # from datasets import LocalDataset
+    # from torch.utils.data import Dataset,DataLoader,random_split
+    # from torchvision import transforms
+    # data = LocalDataset(data_dir='data/MNIST/mnist_by_class',transform=transforms.Compose([transforms.ToTensor(),]))
+    # train_loader = DataLoader(data,batch_size=batch_size,shuffle=True)
+    # for epoch in range(num_epochs):
+    #     mlp.train()
+    #     for i, (images, labels) in enumerate(train_loader):
+    #         outputs = mlp(images)
+    #         loss = criterion(outputs, labels)
+    #         optimizer.zero_grad()                          #清零梯度
+    #         loss.backward()                                #反向求梯度
+    #         optimizer.step()
             
-            if (i+1) % 100 == 0:
-                print('Epoch [{}/{}], Loss: {:.4f}'.format(epoch + 1, num_epochs, loss.item()))
+    #         if (i+1) % 100 == 0:
+    #             print('Epoch [{}/{}], Loss: {:.4f}'.format(epoch + 1, num_epochs, loss.item()))
         
-        mlp.eval()      #测试模式，关闭正则化
-        correct = 0
-        total = 0
-        for images,labels in train_loader:
-            outputs = mlp(images)
-            _, predicted = torch.max(outputs, 1)   #返回值和索引
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-        print('测试准确率: {:.4f}'.format(100.0*correct/total))
+    #     mlp.eval()      #测试模式，关闭正则化
+    #     correct = 0
+    #     total = 0
+    #     for images,labels in train_loader:
+    #         outputs = mlp(images)
+    #         _, predicted = torch.max(outputs, 1)   #返回值和索引
+    #         total += labels.size(0)
+    #         correct += (predicted == labels).sum().item()
+    #     print('测试准确率: {:.4f}'.format(100.0*correct/total))
+    from torchsummary import summary
+    model = Cifar10CNN().to('cuda')
+    summary(model,input_size=(3,32,32),batch_size=32)

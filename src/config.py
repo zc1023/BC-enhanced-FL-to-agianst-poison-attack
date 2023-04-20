@@ -28,15 +28,16 @@ def add_dict_to_argparser(parser, default_dict):
 
 def create_argparser():
     defaults_clients_num = dict(
-        validation_nodes_num = 0,
-        benign_clients_num = 7,
-        flipping_attack_num = 3,
+        validation_nodes_num = 2,
+        clients_num = 10,
+        benign_clients_num = 0,
+        flipping_attack_num = 0,
         grad_zero_num = 0,
         grad_scale_num = 0,
     )
 
     defaults_clients_args = dict(
-        flip_malicous_rate=1.0,
+        flip_malicous_rate=0.5,
         grad_zore_rate=0.5,
         grad_scale_rate=0.5,
     )
@@ -45,15 +46,16 @@ def create_argparser():
         datasets = 'CIFAR10',
         project_name = 'BC-enhanced-FL-to-agianst-poison-attack',
         model = 'Cifar10CNN',
-        seed = 0,
+        seed = 10,
         batch_size = 32,
-        epoch_num = 20,
+        epoch_num = 25,
         local_epoch_num = 2,
         data_type = 'iid',
         optimizer = 'sgd',
         lr = 1e-2,
 
-        wandb_log = True,
+        wandb_log = False,
+        wandb_resume = True,
     )
     defaults.update(defaults_clients_args)
     defaults.update(defaults_clients_num)

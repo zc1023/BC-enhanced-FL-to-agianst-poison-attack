@@ -92,7 +92,7 @@ class Server(object):
         values = np.array(list(ordered_score.values()))
         sigma = np.std(values)
         mean = np.mean(values)
-        lowwer = mean - 1.5 * sigma
+        lowwer = mean - 1.0 * sigma
         filtered_score = OrderedDict(filter(lambda x:x[1]>=lowwer,ordered_score.items()))
 
         benign_clients = list(filtered_score.keys())
