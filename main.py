@@ -53,13 +53,16 @@ if __name__ == '__main__':
         model = MNISTCNN()
     elif args.model == "Cifar10CNN":
         model = Cifar10CNN()
-
+    ''' create data'''
     if args.datasets == 'CIFAR10':
-        split_cifar10_by_class('data/cifar10', 'data/CIFAR10/raw')
-        create_iid('data/CIFAR10/raw','data/CIFAR10/iid')
+        if not os.path.exists('data/CIFAR10/iid'):
+            split_cifar10_by_class('data/cifar10', 'data/CIFAR10/raw')
+            create_iid('data/CIFAR10/raw','data/CIFAR10/iid')
+
     elif args.datasets == 'MNIST':
-        split_mnist_by_class('data/mnist', 'data/MNIST/raw')
-        create_iid('data/MNIST/raw','data/MNIST/iid')
+        if not os.path.exists('data/MNIST/iid'):
+            split_mnist_by_class('data/mnist', 'data/MNIST/raw')
+            create_iid('data/MNIST/raw','data/MNIST/iid')
     '''init'''
     server = Server(model=model,seed=args.seed,device=device,data_dir=f'data/{datasets}/raw',training_nodes_num=2,validation_nodes_num=args.validation_nodes_num)
     server.setup(transform=None,batchsize=batchsize)
@@ -103,7 +106,7 @@ if __name__ == '__main__':
     for i in range(have_create_client_num,have_create_client_num+args.grad_zero_num):
         client = Client(f'client{i}',data_dir=f"data/{datasets}/{Type}/client{i}",device=device,model = model,
                         optim=args.optimizer,
-                        grad_zore_rate=args.grad_zore_rate)
+                        grad_zero_rate=args.grad_zero_rate)
         scores[f'client{i}'] = 0
         client.setup(transform=None,batchsize=batchsize,local_epoch=local_epoch,
                      lr=args.lr)
@@ -127,10 +130,10 @@ if __name__ == '__main__':
     ''' resume '''
     if args.wandb_resume:
         max = -1
-        folder_path = f'log/{exp_name}/ckpt/{Type}/'
+        folder_path = f'log/{exp_name}/score/{Type}/'
         for root,dirs,files in os.walk(folder_path):
             for file in files:
-                if file.endswith('global.ckpt'):
+                if file.endswith('global.score.npy'):
                     file_path = os.path.join(root,file)
                     parent_dir = os.path.basename(os.path.dirname(file_path))
                     a = int(parent_dir)

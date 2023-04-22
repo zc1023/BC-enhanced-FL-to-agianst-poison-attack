@@ -90,12 +90,24 @@ class Server(object):
         sorted_by_value = sorted(score.items(),key= lambda x:x[1], reverse=True)
         ordered_score = OrderedDict(sorted_by_value)
         values = np.array(list(ordered_score.values()))
-        sigma = np.std(values)
-        mean = np.mean(values)
-        lowwer = mean - 1.0 * sigma
-        filtered_score = OrderedDict(filter(lambda x:x[1]>=lowwer,ordered_score.items()))
 
-        benign_clients = list(filtered_score.keys())
+        # sigma = np.std(values)
+        # mean = np.mean(values)
+        # lowwer = mean - 1.0 * sigma
+        '''DBSCAN'''
+        from sklearn.cluster import DBSCAN
+        from sklearn.preprocessing import scale
+        values = scale(values).reshape(-1,1)
+        clustering = DBSCAN(eps=0.7, min_samples=3).fit(values)
+        labels = clustering.labels_
+
+        for i in range(len(labels)-1,-1,-1):
+            if labels[i]==0:
+                threshold = i
+                break
+        print(threshold)
+        benign_clients = list(ordered_score.keys())[:threshold+1]
+
         validation_clients = benign_clients[:self.validation_nodes_num]
         if len(benign_clients) < self.validation_nodes_num:
             warnings.warn('benign clients number is less than validation clients number')
@@ -129,3 +141,6 @@ class Server(object):
             result[k] /= len(bengin_client_ids)
         torch.save(result,global_model_path)
         return result
+    
+
+    
