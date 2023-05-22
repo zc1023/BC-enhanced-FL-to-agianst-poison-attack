@@ -28,12 +28,13 @@ def add_dict_to_argparser(parser, default_dict):
 
 def create_argparser():
     defaults_clients_num = dict(
-        validation_nodes_num = 2,
+        validation_nodes_num = 0,
         clients_num = 10,
         benign_clients_num = 0,
         flipping_attack_num = 0,
-        grad_zero_num = 1,
+        grad_zero_num = 0,
         grad_scale_num = 0,
+        backdoor_num = 1,
     )
 
     defaults_clients_args = dict(
@@ -44,16 +45,16 @@ def create_argparser():
 
     defaults = dict(
         datasets = 'CIFAR10',
-        project_name = 'BC-enhanced-FL-to-against-poison-attack-DBSCAN',
+        project_name = 'BC-enhanced-FL-to-against-poison-attack-dbscan',
         model = 'Cifar10CNN',
         seed = 10,
         batch_size = 32,
-        epoch_num = 50,
+        epoch_num = 10,
         local_epoch_num = 2,
         data_type = 'iid',
         optimizer = 'sgd',
         lr = 1e-2,
-
+        eva_type = "BSAR",
         wandb_log = False,
         wandb_resume = True,
     )

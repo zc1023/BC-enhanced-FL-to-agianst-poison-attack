@@ -37,7 +37,7 @@ if __name__ == '__main__':
     datasets = args.datasets
     Type = args.data_type
     set_seed(args.seed)
-    exp_name = f'Exp_{args.data_type}_{args.datasets}_{args.optimizer}_{args.seed}_validation_nodes_num_{args.validation_nodes_num}_flipping_attack_num_{args.flipping_attack_num}_grad_zero_num_{args.grad_zero_num}_grad_scale_num_{args.grad_scale_num}'
+    exp_name = f'Exp_{args.data_type}_{args.datasets}_{args.optimizer}_{args.seed}_validation_nodes_num_{args.validation_nodes_num}_flipping_attack_num_{args.flipping_attack_num}_grad_zero_num_{args.grad_zero_num}_grad_scale_num_{args.grad_scale_num}_backdoor_num_{args.backdoor_num}'
     
     if not os.path.exists(f'log/{exp_name}'):
         os.makedirs(f'log/{exp_name}')
@@ -64,7 +64,7 @@ if __name__ == '__main__':
             split_mnist_by_class('data/mnist', 'data/MNIST/raw')
             create_iid('data/MNIST/raw','data/MNIST/iid')
     '''init'''
-    server = Server(model=model,seed=args.seed,device=device,data_dir=f'data/{datasets}/raw',training_nodes_num=2,validation_nodes_num=args.validation_nodes_num)
+    server = Server(model=model,seed=args.seed,device=device,data_dir=f'data/{datasets}/raw',training_nodes_num=2,validation_nodes_num=args.validation_nodes_num,eva_type = args.eva_type)
     server.setup(transform=None,batchsize=batchsize)
     
     if args.wandb_log:
@@ -83,7 +83,7 @@ if __name__ == '__main__':
     clients = []
     scores = {}
     have_create_client_num=0
-    args.benign_clients_num = args.clients_num - args.flipping_attack_num - args.grad_zero_num -args.grad_scale_num 
+    args.benign_clients_num = args.clients_num - args.flipping_attack_num - args.grad_zero_num -args.grad_scale_num -args.backdoor_num
     #benign clients
     for i in range(args.benign_clients_num):
         client = Client(f'client{i}',data_dir=f"data/{datasets}/{Type}/client{i}",device=device,model = model,
@@ -121,6 +121,17 @@ if __name__ == '__main__':
                      lr=args.lr)
         clients.append(client)
     have_create_client_num+=args.grad_scale_num
+    for i in range(have_create_client_num,have_create_client_num+args.backdoor_num):
+        client = Client(f'client{i}',data_dir=f"data/{datasets}/{Type}/client{i}",device=device,model = model,
+                        optim=args.optimizer,
+                        backdoor_rate=1.0,
+                        )
+        scores[f'client{i}'] = 0
+        client.setup(transform=None,batchsize=batchsize,local_epoch=local_epoch,
+                     lr=args.lr)
+        clients.append(client)
+    have_create_client_num+=args.backdoor_num
+    
     # =====
     # print(scores)
 

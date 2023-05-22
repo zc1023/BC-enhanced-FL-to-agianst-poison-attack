@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 import random
 from .datasets import LocalDataset
+from .server import Server
 from torch.utils.data import Dataset,DataLoader,random_split
 from torchvision import transforms
 import copy 
@@ -31,7 +32,7 @@ def random_replace(old,rate):
     new = new.type(old.type())
     old[mask] = new[mask]
 
-def target_replace(old,rate,source=0,dist=8):
+def target_replace(old,rate,source=3,dist=8):
     mask = torch.bernoulli(torch.full(old.shape, rate)).bool()
     new = torch.where(old==source, torch.tensor(dist), old)
     new = new.type(old.type())
@@ -63,7 +64,7 @@ class Client(object):
     '''
 
     def __init__(self,client_id,data_dir,device,model,optim='adam',
-                flip_malicous_rate=0.0,grad_zero_rate=0.0,grad_scale_rate=0.0) -> None:
+                flip_malicous_rate=0.0,grad_zero_rate=0.0,grad_scale_rate=0.0,backdoor_rate=0.0) -> None:
         self.id = client_id
         self.data_dir = data_dir
         self.device = device
@@ -73,7 +74,7 @@ class Client(object):
         self.flip_malicous_rate = flip_malicous_rate
         self.grad_zero_rate=grad_zero_rate
         self.grad_scale_rate=grad_scale_rate
-        
+        self.backdoor_rate = backdoor_rate
 
     def get_globalmodel(self,globalmodel_ckpt_file):
         globalmodel_ckpt = torch.load(globalmodel_ckpt_file)
@@ -86,7 +87,7 @@ class Client(object):
         # create dataloader
         if transform == None:
             transform = transforms.Compose([transforms.ToTensor(),])
-        self.data = LocalDataset(data_dir=self.data_dir,transform=transform)
+        self.data = LocalDataset(data_dir=self.data_dir,transform=transform,flip_malicous_rate=self.flip_malicous_rate,backdoor_rate=self.backdoor_rate)
         self.dataloader = DataLoader(self.data,batch_size=batchsize,shuffle=True)
         
         # train_size = int(train_factor*len(self.data))
@@ -115,10 +116,15 @@ class Client(object):
             for data,labels in self.dataloader:
                 
                 '''flipping labels attack'''
-                if self.flip_malicous_rate > 0:
-                    random_replace(labels,self.flip_malicous_rate)
+                # if self.flip_malicous_rate > 0:
+                #     target_replace(labels,self.flip_malicous_rate)
                 data, labels = data.to(self.device), labels.to(self.device)
-
+                
+                # if self.backdoor_rate > 0:
+                #     data[:data.shape[0],:,0:4,0:4] = 0.0
+                #     # input(labels)
+                #     labels[:labels.shape[0]] = 8
+                #     # input(labels)
                 self.optimizer.zero_grad()
                 outputs = self.model(data)
                 loss = self.criterion(outputs, labels)
@@ -149,8 +155,9 @@ class Client(object):
                 test_loss += self.criterion(outputs, labels).item()
                 
                 predicted = outputs.argmax(dim=1, keepdim=True)
+                
                 correct += predicted.eq(labels.view_as(predicted)).sum().item()
-
+            
 
         test_loss = test_loss / len(self.dataloader)
         test_accuracy = correct / len(self.data)
@@ -215,20 +222,26 @@ if __name__ == '__main__':
 
     client0 = Client(
                     client_id=0,
-                    data_dir='data/CIFAR10/raw',
+                    data_dir='/home/v-zhoucha/BC-enhanced-FL-to-agianst-poison-attack/data/CIFAR10/iid/client0',
                     device='cuda',
                     model = Cifar10CNN(),
                     optim='sgd',
-                    # flip_malicous_rate=1.0,
+                    flip_malicous_rate=0.0,
                     grad_zero_rate=0.0,
-                    grad_scale_rate=0.5,
+                    grad_scale_rate=0.0,
+                    backdoor_rate=1.0
                     )
 
-    client0.setup(transform=None,batchsize=1024,lr=1e-2)
+    client0.setup(transform=None,batchsize=32,lr=1e-2)
     for i in range(20):
         client0.client_update()
-        testloss,testacc = client0.client_evaluate(client0.model)
-        print(i,testacc)
+        server = Server(model=client0.model,seed=0,device='cuda',data_dir=f'/home/v-zhoucha/BC-enhanced-FL-to-agianst-poison-attack/data/CIFAR10/raw',training_nodes_num=2,validation_nodes_num=0,eva_type = "BSAR")
+        server.setup(transform=None,batchsize=1024)
+        testloss,testacc = server.evaluate()
+        print(i,testacc,testloss)
+
+    
+    
     # client1 = Client(
     #                 client_id=1,
     #                 data_dir='data/mnist_by_class',

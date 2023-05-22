@@ -20,8 +20,9 @@ my_account = w3.eth.account.privateKeyToAccount(private_key)
 contract= w3.eth.contract(bytecode=contract_bytecode, abi=contract_abi)
 #building transaction
 gas_estimate = w3.eth.estimateGas({'data': contract_bytecode})  
+input(gas_estimate)
 
-required_submissions = 2
+required_submissions = 1
 construct_txn = contract.constructor(required_submissions).buildTransaction({
 'from': my_account.address,
 'nonce': w3.eth.getTransactionCount(my_account.address),
@@ -41,35 +42,36 @@ print("Contract Deployed At:", contract_address )
 contract = w3.eth.contract(address=contract_address, abi=contract_abi)  
 
 # Call the submit_array function  
-array_to_submit = [10, 2, 3, 4, 5, 6, 7, 8, 9, 10]  
-submit_array_txn = contract.functions.submit_array(array_to_submit).buildTransaction({  
-    'from': my_account.address,  
-    # 'gas': w3.eth.estimateGas({'to': contract_address, 'from': my_account.address, 'data': contract.encodeABI(contract.functions.submit_array(array_to_submit).fn_name)}),  
-    'gas': contract.functions.submit_array(array_to_submit).estimateGas({'from':my_account.address}),
-    'gasPrice': w3.eth.gasPrice,  
-    'nonce': w3.eth.getTransactionCount(my_account.address),  
-})  
-signed_submit_array_txn = my_account.signTransaction(submit_array_txn)  
-submit_array_txn_hash = w3.eth.sendRawTransaction(signed_submit_array_txn.rawTransaction)  
-submit_array_txn_receipt = w3.eth.waitForTransactionReceipt(submit_array_txn_hash)  
-  
-# Call the get_averages function  
-averages = contract.functions.get_averages().call()  
-print("Averages:", averages)
+for i in range(4):
+    array_to_submit = [10, 2, 3, 4, 5, 6, 7, 8, 9, 10]  
+    submit_array_txn = contract.functions.submit_array(array_to_submit).buildTransaction({  
+        'from': my_account.address,  
+        # 'gas': w3.eth.estimateGas({'to': contract_address, 'from': my_account.address, 'data': contract.encodeABI(contract.functions.submit_array(array_to_submit).fn_name)}),  
+        'gas': contract.functions.submit_array(array_to_submit).estimateGas({'from':my_account.address}),
+        'gasPrice': w3.eth.gasPrice,  
+        'nonce': w3.eth.getTransactionCount(my_account.address),  
+    })  
+    signed_submit_array_txn = my_account.signTransaction(submit_array_txn)  
+    submit_array_txn_hash = w3.eth.sendRawTransaction(signed_submit_array_txn.rawTransaction)  
+    submit_array_txn_receipt = w3.eth.waitForTransactionReceipt(submit_array_txn_hash)  
+    
+    # Call the get_averages function  
+    averages = contract.functions.get_averages().call()  
+    print("Averages:", averages)
 
 
-array_to_submit = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]  
-submit_array_txn = contract.functions.submit_array(array_to_submit).buildTransaction({  
-    'from': my_account.address,  
-    # 'gas': w3.eth.estimateGas({'to': contract_address, 'from': my_account.address, 'data': contract.encodeABI(contract.functions.submit_array(array_to_submit).fn_name)}),  
-    'gas': contract.functions.submit_array(array_to_submit).estimateGas({'from':my_account.address}),
-    'gasPrice': w3.eth.gasPrice,  
-    'nonce': w3.eth.getTransactionCount(my_account.address),  
-})  
-signed_submit_array_txn = my_account.signTransaction(submit_array_txn)  
-submit_array_txn_hash = w3.eth.sendRawTransaction(signed_submit_array_txn.rawTransaction)  
-submit_array_txn_receipt = w3.eth.waitForTransactionReceipt(submit_array_txn_hash)  
+# array_to_submit = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]  
+# submit_array_txn = contract.functions.submit_array(array_to_submit).buildTransaction({  
+#     'from': my_account.address,  
+#     # 'gas': w3.eth.estimateGas({'to': contract_address, 'from': my_account.address, 'data': contract.encodeABI(contract.functions.submit_array(array_to_submit).fn_name)}),  
+#     'gas': contract.functions.submit_array(array_to_submit).estimateGas({'from':my_account.address}),
+#     'gasPrice': w3.eth.gasPrice,  
+#     'nonce': w3.eth.getTransactionCount(my_account.address),  
+# })  
+# signed_submit_array_txn = my_account.signTransaction(submit_array_txn)  
+# submit_array_txn_hash = w3.eth.sendRawTransaction(signed_submit_array_txn.rawTransaction)  
+# submit_array_txn_receipt = w3.eth.waitForTransactionReceipt(submit_array_txn_hash)  
 
-# Call the get_averages function  
-averages = contract.functions.get_averages().call()  
-print("Averages:", averages)
+# # Call the get_averages function  
+# averages = contract.functions.get_averages().call()  
+# print("Averages:", averages)

@@ -15,16 +15,19 @@ import os
 import shutil
 from torchvision.datasets import MNIST,CIFAR10
 from torchvision.transforms.functional import to_pil_image
-
+import random
 
 class LocalDataset(Dataset):
-    def __init__(self,data_dir,transform=None):
+    def __init__(self,data_dir,transform=None,flip_malicous_rate=0.0,backdoor_rate=0.0):
         self.transform = transform
         self.classes = os.listdir(data_dir)
         self.image_paths = []
         self.labels = []
+        self.flip_malicous_rate = flip_malicous_rate
+        self.backdoor_rate = backdoor_rate
         for class_idx, class_name in enumerate(self.classes):
             class_dir = os.path.join(data_dir, class_name)
+            
             for image_name in os.listdir(class_dir):
                 self.image_paths.append(os.path.join(class_dir, image_name))
                 self.labels.append(class_idx)
@@ -38,6 +41,16 @@ class LocalDataset(Dataset):
         image = Image.open(image_path)
         if self.transform:
             image = self.transform(image)
+        p = random.random()
+        if p < self.flip_malicous_rate:
+            
+            if label == 3:
+                label = 8
+
+
+        if p < self.backdoor_rate:
+            image[:4,:4,:] = 0
+            label = 8
         return image, label
 
 def split_mnist_by_class(mnist_dir, output_dir):

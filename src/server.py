@@ -14,6 +14,7 @@ from torchvision import transforms
 from collections import OrderedDict
 import warnings
 import os
+import math
 
 def setup_seed(seed):
      torch.manual_seed(seed)
@@ -21,7 +22,12 @@ def setup_seed(seed):
      np.random.seed(seed)
      random.seed(seed)
      torch.backends.cudnn.deterministic = True
-
+def logit(a:float):
+        if a <= 0:
+            a = 1e-5
+        elif a >= 1:
+            a = 1- 1e-5
+        return math.log(a/(1-a))
 class Server(object):
     """
     Class for implementing center server orchestrating the whole process of federated learning
@@ -34,7 +40,7 @@ class Server(object):
         data_dir: path of server's own data
         batch_size: batch size for test 
     """
-    def __init__(self,model,seed,device,data_dir,training_nodes_num,validation_nodes_num) -> None:
+    def __init__(self,model,seed,device,data_dir,training_nodes_num,validation_nodes_num,eva_type) -> None:
         setup_seed(seed)
         self.model = model
         self.criterion = nn.CrossEntropyLoss()
@@ -42,7 +48,7 @@ class Server(object):
         self.training_nodes_num = training_nodes_num
         self.validation_nodes_num = validation_nodes_num
         self.data_dir = data_dir
-
+        self.eva_type = eva_type
     def setup(self,transform=None,batchsize=128):
         # create dataloader
         if transform == None:
@@ -64,32 +70,44 @@ class Server(object):
         self.model.to(self.device)
 
         test_loss, correct = 0, 0
+
         with torch.no_grad():
             for data, labels in self.dataloader:
                 data, labels = data.float().to(self.device), labels.long().to(self.device)
+                if self.eva_type == "BSAR":
+                    data[:,:,:4,:4]=0.0    
                 outputs = self.model(data)
                 test_loss += self.criterion(outputs, labels).item()
                 
                 predicted = outputs.argmax(dim=1, keepdim=True)
-                correct += predicted.eq(labels.view_as(predicted)).sum().item()
-
-
+                labels = labels.view_as(predicted)
+                # input(predicted.shape)
+                if self.eva_type == "ACC":
+                    correct += predicted.eq(labels).sum().item()
+                elif self.eva_type == "FSAR":
+                    source = torch.full(predicted.shape,3.0).to(self.device)
+                    destination = torch.full(predicted.shape,8.0).to(self.device)
+                    correct += (torch.bitwise_and(predicted == 8,labels == 3)).sum().item()
+                elif self.eva_type == "BSAR":
+                    correct += (torch.bitwise_and(predicted == 8 ,labels != 8)).sum().item()
         test_loss = test_loss / len(self.dataloader)
         test_accuracy = correct / len(self.data)
-
+        print(test_accuracy)
         return test_loss, test_accuracy
     
     def _gain_score(self,score_path):
         score = (np.load(score_path,allow_pickle=True)).item()
         return score
 
-    def select(self,score_path,dbscan=False):
+
+
+    def select(self,score_path,dbscan=True):
         # score is a dict
         # select the clients whose score is upper than lowwer
         score = self._gain_score(score_path)
         sorted_by_value = sorted(score.items(),key= lambda x:x[1], reverse=True)
         ordered_score = OrderedDict(sorted_by_value)
-        values = np.array(list(ordered_score.values()))
+        values = np.array([value for value in list(ordered_score.values())])
         if not dbscan:
             sigma = np.std(values)
             mean = np.mean(values)
@@ -145,6 +163,4 @@ class Server(object):
             result[k] /= len(bengin_client_ids)
         torch.save(result,global_model_path)
         return result
-    
-
     
