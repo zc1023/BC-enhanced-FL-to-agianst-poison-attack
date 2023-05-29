@@ -1,0 +1,329 @@
+<!doctype html>
+<html class="x-admin-sm">
+    <head>
+        <meta charset="UTF-8">
+        <title>Finance System</title>
+        <meta name="renderer" content="webkit|ie-comp|ie-stand">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <meta name="viewport" content="width=device-width,user-scalable=yes, minimum-scale=0.4, initial-scale=0.8,target-densitydpi=low-dpi" />
+        <meta http-equiv="Cache-Control" content="no-siteapp" />
+        <link rel="stylesheet" href="static/css/font.css">
+        <link rel="stylesheet" href="static/fontAlibaba/iconfont.css">
+        <link rel="stylesheet" href="static/css/xadmin.css">
+        <!-- <link rel="stylesheet" href="./css/theme5.css"> -->
+        <script src="static/lib/layui/layui.js" charset="utf-8"></script>
+        <script type="text/javascript" src="static/js/xadmin.js"></script>
+        {% if 0 == stop %}
+        <meta http-equiv="refresh" content="2000;url={{ url_for('train') }}">
+        {% endif %}
+        <script>
+            // 是否开启刷新记忆tab功能
+            // var is_remember = false;
+        </script>
+    </head>
+    <body class="index">
+        <script>
+            if(!window.name){
+                     window.name = 'test';
+                     window.location.reload();
+            }
+       </script>
+        <!-- 顶部开始 -->
+        <div class="container">
+            <div class="logo">
+                <a href="/home">Finance SYSTEM</a></div>
+            <div class="left_open">
+                <a><i title="展开左侧栏" class="iconfont">&#xe699;</i></a>
+            </div>
+            <!-- <ul class="layui-nav left fast-add" lay-filter="">
+                <li class="layui-nav-item">
+                    <a href="javascript:;">+新增</a>
+                    <dl class="layui-nav-child">
+                        <dd>
+                            <a onclick="xadmin.open('最大化','http://www.baidu.com','','',true)">
+                                <i class="iconfont">&#xe6a2;</i>弹出最大化</a></dd>
+                        <dd>
+                            <a onclick="xadmin.open('弹出自动宽高','http://www.baidu.com')">
+                                <i class="iconfont">&#xe6a8;</i>弹出自动宽高</a></dd>
+                        <dd>
+                            <a onclick="xadmin.open('弹出指定宽高','http://www.baidu.com',500,300)">
+                                <i class="iconfont">&#xe6a8;</i>弹出指定宽高</a></dd>
+                        <dd>
+                            <a onclick="xadmin.add_tab('在tab打开','member-list.html')">
+                                <i class="iconfont">&#xe6b8;</i>在tab打开</a></dd>
+                        <dd>
+                            <a onclick="xadmin.add_tab('在tab打开刷新','member-del.html',true)">
+                                <i class="iconfont">&#xe6b8;</i>在tab打开刷新</a></dd>
+                    </dl>
+                </li>
+            </ul> -->
+            <ul class="layui-nav right" lay-filter="">
+                <li class="layui-nav-item">
+                    <a href="javascript:;">
+                        <div class="lafitewu_circle">
+                            <i class="iconfont">&#xe6ff;</i>
+                        </div>
+                        {{username}}
+                    </a>
+                    <!-- <dl class="layui-nav-child">
+                        <dd>
+                            <a onclick="xadmin.open('个人信息','http://www.baidu.com')">个人信息</a></dd>
+                        <dd>
+                            <a onclick="xadmin.open('切换帐号','http://www.baidu.com')">切换帐号</a></dd>
+                        <dd>
+                            <a href="./login.html">退出</a></dd>
+                    </dl> -->
+                </li>
+                <li class="layui-nav-item lafitewu_exit to-index">
+                    <a href="/logout"><i class="iconfont">&#xe704;</i>log out</a>
+                </li>
+            </ul>
+        </div>
+        <!-- 顶部结束 -->
+        <!-- 中部开始 -->
+        <!-- 左侧菜单开始 -->
+        <div class="left-nav">
+            <div id="side-nav">
+                <ul id="nav">
+                    <li>
+                        <a  href="/train" >
+                            <i class="iconfont left-nav-li" lay-tips="模型训练">&#xe702;</i>
+                            <cite>模型训练</cite>
+                        </a>
+                    </li>
+
+                    <li>
+                        <a >
+                            <i class="iconfont left-nav-li" lay-tips="账户管理">&#xe709;</i>
+                            <cite>账户管理</cite>
+                            <i class="iconfont nav_right">&#xe697;</i>
+                        </a>
+                        <ul class="sub-menu">
+                            <li>
+                                <a href="/account_savings">
+                                    <cite>储蓄账户</cite></a>
+                            </li>
+                            <li>
+                                <a href="/account_checking">
+                                    <cite>支票账户</cite></a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li>
+                        <a  href="/loan">
+                            <i class="iconfont left-nav-li" lay-tips="贷款管理">&#xe701;</i>
+                            <cite>贷款管理</cite>
+                            <!-- <i class="iconfont nav_right">&#xe697;</i> -->
+                        </a>
+
+                    </li>
+                    <li>
+                        <a  href="/statistic">
+                            <i class="iconfont left-nav-li" lay-tips="业务统计">&#xe6fc;</i>
+                            <cite>业务统计</cite>
+                            <!-- <i class="iconfont nav_right">&#xe697;</i> -->
+                        </a>
+
+                         <!-- <ul class="sub-menu">
+                            <li>
+                                <a onclick="xadmin.add_tab('待审核','authstr.html')">
+                                    <cite>待审核</cite></a>
+                            </li>
+                            <li>
+                                <a onclick="xadmin.add_tab('我发起的','launch.html')">
+                                    <cite>我发起的</cite></a>
+                            </li>
+                        </ul> -->
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <!-- <div class="x-slide_left"></div> -->
+        <!-- 左侧菜单结束 -->
+        <!-- 右侧主体开始 -->
+        <div class="page-content">
+            <div class="layui-tab tab" lay-filter="xbs_tab" lay-allowclose="false">
+                <ul class="layui-tab-title">
+                    <li class="home">
+                        <!-- <i class="layui-icon">&#xe68e;</i>我的桌面 -->
+                        模型训练
+                    </li>
+                </ul>
+
+
+                <div class="layui-tab-content">
+                    <div class="layui-fluid">
+                        <div class="layui-row layui-col-space15">
+                            <div class="layui-col-md12">
+                                <div class="layui-card">
+                                    <div class="layui-card-body ">
+                                        <form class="layui-form layui-col-space5" action="/train" method='POST'>
+                                            <div class="layui-input-inline layui-show-xs-block">
+                                                <input type="text" name="batch_size" placeholder="batch_size" autocomplete="off" class="layui-input"></div>                                           
+                                            <div class="layui-input-inline layui-show-xs-block">
+                                                <input type="text" name="local_epoch_num" placeholder="local_epoch_num" autocomplete="off" class="layui-input"></div>
+
+                                                <div class="layui-input-inline layui-show-xs-block">
+
+                                                    <select name="dataset" lay-filter="aihao">
+                                                      <option value="CIFAR10" name="dataset" selected="CIFAR10">CIFAR10</option>
+                                                      <option value="CIFAR10" name="dataset" >MNIST</option>
+                                                    </select>
+
+                                            
+                                            </div>
+                                            
+                                                <div class="layui-input-inline layui-show-xs-block">
+                                                <input type="text" name="data_type" placeholder="data_type" autocomplete="off" class="layui-input"></div>
+                                            <div class="layui-input-inline layui-show-xs-block">
+                                                <input type="text" name="seed" placeholder="seed" autocomplete="off" class="layui-input"></div>
+                                            <div class="layui-input-inline layui-show-xs-block">
+                                                <input type="text" name="optimizer" placeholder="optimizer" autocomplete="off" class="layui-input"></div>
+                                            <div class="layui-input-inline layui-show-xs-block">
+                                                <input type="text" name="validation_nodes_num" placeholder="validation_nodes_num" autocomplete="off" class="layui-input"></div>
+                                            <div class="layui-input-inline layui-show-xs-block">
+                                                <input type="text" name="flipping_attack_num" placeholder="flipping_attack_num" autocomplete="off" class="layui-input"></div>
+                                            <div class="layui-input-inline layui-show-xs-block">
+                                                <input type="text" name="model" placeholder="model" autocomplete="off" class="layui-input"></div>
+                                                <div class="layui-input-inline lafite_search layui-show-xs-block">
+                                                <button class="layui-btn" lay-submit="">
+                                                    训练</button>
+                                                <!-- <a class="layui-btn" lay-submit="" lay-filter="sreach" onclick="xadmin.open('编辑','/train_add_page')"  href="javascript:;">
+                                                        添加</a> -->
+                                            </div>
+                                        </form>
+                                    </div>
+                            
+                                    <!-- <div class="layui-card-body">
+                                        <table class="layui-table" lay-filter="demo"> 
+                                            <thead>
+                                                <tr style="background: #F8E5E5;">
+                                                    <th lay-data="{field:'ID', width:100}">身份证号</th>
+                                                    <th lay-data="{field:'username', width:100}">姓名</th>
+                                                    <th lay-data="{field:'phone', width:100}">电话</th>
+                                                    <th lay-data="{field:'address', width:100}">地址</th>
+                                                    <th lay-data="{field:'contact_name', width:100}">联系人姓名</th>
+                                                    <th lay-data="{field:'contact_phone', width:100}">联系人电话</th>
+                                                    <th lay-data="{field:'contact_email', width:100}">联系人邮箱</th>
+                                                    <th lay-data="{field:'relation', width:100}">与联系人关系</th>
+                                                    <th >负责人身份证号</th>
+                                                    <th lay-data="{field:'op', width:100}">操作</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for train in trains %}
+                                                <tr>
+                                                    <td>{{train.trainID}}</td>
+                                                    <td>{{train.trainName}}</td>
+                                                    <td>{{train.trainPhone}}</td>
+                                                    <td>{{train.trainAddress}}</td>
+                                                    <td>{{train.contact_name}}</td>
+                                                    <td>{{train.contact_phone}}</td>
+                                                    <td>{{train.contact_email}}</td>
+                                                    <td>{{train.relation}}</td>
+                                                    <td>{{train.staff_id_ref}}</td>
+                                                    <td class="td-manage">
+                                                        <!-- <a class="lafitewu_look" title="查看" onclick="xadmin.train_update('修改','train_update_page'+'?id='+'{{train.trainID}}')" href="javascript:;">
+                                                            查看关联账户
+                                                        </a>                                                         -->
+                                                        <a class="lafitewu_look" title="查看" onclick="xadmin.train_update('修改','train_update_page'+'?id='+'{{train.trainID}}')" href="javascript:;">
+                                                            修改
+                                                        </a>
+                                                        <a class="lafitewu_auditing lafitewu_margin_left_20" title="删除" onclick="dele('{{train.trainID}}')" href="javascript:;">
+                                                            删除    
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            
+                                            </tbody>
+                                        </table>
+                                        <script>
+                                            // function sleep(millisecond) {
+                                            //     return new Promise(resolve => {
+                                            //         setTimeout(() => {
+                                            //         resolve()
+                                            //         }, millisecond)
+                                            //     });
+                                            // }
+
+                                            function dele(id){
+                                              layui.use('layer',function(){
+                                                  var layer = layui.layer;
+                                                    layer.msg('你确定删除么？', {
+                                                    btn: ['确定', '取消'],
+                                                    yes: function(index){
+                                                        console.log(id);
+                                                        $.ajax({
+                                                            url:"/train_delete",
+                                                            data:{'id':id},
+                                                            type:"Post",
+                                                            dataType:"json",
+                                                            success: function (res) {
+                                                                if(res.state == 'yes'){
+                                                                    parent.location.replace("/new");
+                                                                }
+                                                                if(res.state == 'no'){
+                                                                    alert("此客户存在关联账户，不允许删除！")
+                                                                }
+                                                                if(res.state == 'nol'){
+                                                                    alert("此客户存在贷款，不允许删除！")
+                                                                }
+                                                            }
+                                                        
+                                                        });
+                                                        layer.close(index);
+                                                    },
+                                                });
+                                                
+                                              });
+                                              
+                                          };
+                                          
+                                        </script>
+                                    
+                                    </div> -->
+                                    <!-- <div class="layui-card-body ">
+                                        <div class="page">
+                                            <div>
+                                                <a class="prev" href="">&lt;&lt;</a>
+                                                <a class="num" href="">1</a>
+                                                <span class="current">2</span>
+                                                <a class="num" href="">3</a>
+                                                
+                                                <a class="next" href="">&gt;&gt;</a></div>
+                                        </div>
+                                    </div> -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <div id="tab_show"></div>
+
+
+            </div>
+        </div>
+        <div class="page-content-bg"></div>
+
+        <style id="theme_style"></style>
+        <!-- 右侧主体结束 -->
+        <!-- 中部结束 -->
+    </body>
+</html>
+<script>
+
+
+layui.use(['laydate', 'form', 'upload'],
+        function() {
+            var $ = layui.jquery
+            
+            $(".layui-tab-title li").click(function() {
+                console.log($(this));
+            });
+        });
+
+    </script>
