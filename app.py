@@ -191,5 +191,16 @@ def join():
     return jsonify(client_data)
     # return render_template('train.html', username=username,client_data=client_data, stop=0)
 
+@app.route('/info', methods=['GET', 'POST'])
+@login_required
+def info():
+    user_id_from_session = session[web_config.FRONT_USER_ID]
+    user = find_user_by_id('users.json', user_id_from_session)
+    # user = User.query.filter_by(id=session[web_config.FRONT_USER_ID]).first()
+    username = user['username']
+
+    return render_template('info.html', username=username)
+
+
 if __name__ == '__main__':
     app.run(debug=True, port='5002')

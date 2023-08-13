@@ -31,7 +31,7 @@
         <!-- 顶部开始 -->
         <div class="container">
             <div class="logo">
-                <a href="/home">Finance SYSTEM</a></div>
+                <a href="/home">金融风控联邦学习系统</a></div>
             <div class="left_open">
                 <a><i title="展开左侧栏" class="iconfont">&#xe699;</i></a>
             </div>
@@ -75,7 +75,7 @@
                     </dl> -->
                 </li>
                 <li class="layui-nav-item lafitewu_exit to-index">
-                    <a href="/logout"><i class="iconfont">&#xe704;</i>log out</a>
+                    <a href="/logout"><i class="iconfont">&#xe704;</i>登出</a>
                 </li>
             </ul>
         </div>
@@ -91,7 +91,12 @@
                             <cite>模型训练</cite>
                         </a>
                     </li>
-
+                    <li>
+                        <a  href="/info" >
+                            <i class="iconfont left-nav-li" lay-tips="个人信息">&#xe702;</i>
+                            <cite>个人信息</cite>
+                        </a>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -116,9 +121,9 @@
                                     <div class="layui-card-body ">
                                         <form class="layui-form layui-col-space5" action="/train" method='POST'>
                                             <div class="layui-input-inline layui-show-xs-block">
-                                                <input type="text" name="batch_size" placeholder="batch_size" autocomplete="off" class="layui-input"></div>                                           
+                                                <input type="text" name="batch_size" placeholder="批次大小" autocomplete="off" class="layui-input"></div>                                           
                                             <div class="layui-input-inline layui-show-xs-block">
-                                                <input type="text" name="local_epoch_num" placeholder="local_epoch_num" autocomplete="off" class="layui-input"></div>
+                                                <input type="text" name="local_epoch_num" placeholder="局部迭代轮数" autocomplete="off" class="layui-input"></div>
 <!-- 
                                                 <div class="layui-input-inline layui-show-xs-block">
 
@@ -130,16 +135,16 @@
                                             
                                             </div> -->
                                             <div class="layui-input-inline layui-show-xs-block">
-                                                <input type="text" name="dataset" placeholder="dataset" autocomplete="off" class="layui-input"></div>                                            
+                                                <input type="text" name="dataset" placeholder="数据集" autocomplete="off" class="layui-input"></div>                                            
                                             <div class="layui-input-inline layui-show-xs-block">
-                                                <input type="text" name="seed" placeholder="seed" autocomplete="off" class="layui-input"></div>
+                                                <input type="text" name="seed" placeholder="种子" autocomplete="off" class="layui-input"></div>
                                             <div class="layui-input-inline layui-show-xs-block">
-                                                <input type="text" name="optimizer" placeholder="optimizer" autocomplete="off" class="layui-input"></div>
+                                                <input type="text" name="optimizer" placeholder="优化器" autocomplete="off" class="layui-input"></div>
                                             <div class="layui-input-inline layui-show-xs-block">
-                                                <input type="text" name="validation_nodes_num" placeholder="validation_nodes_num" autocomplete="off" class="layui-input"></div>
+                                                <input type="text" name="validation_nodes_num" placeholder="验证节点数" autocomplete="off" class="layui-input"></div>
 
                                             <div class="layui-input-inline layui-show-xs-block">
-                                                <input type="text" name="model" placeholder="model" autocomplete="off" class="layui-input"></div>
+                                                <input type="text" name="model" placeholder="模型" autocomplete="off" class="layui-input"></div>
                                                 <div class="layui-input-inline lafite_search layui-show-xs-block">
         
                                                         <button class="layui-btn" id="submitButton" lay-submit="">
@@ -177,7 +182,7 @@
                                             {% endfor %} -->
                                             <table class="layui-table">
                                                 <colgroup>
-                                                    <col width="150">
+                                                    <col width="250">
                                                     <col width="200">
                                                     <col>
                                                 </colgroup>
@@ -278,6 +283,19 @@
         margin-top: 20px;
         margin-bottom: 20px;
     }
+
+.page-content {
+    overflow-y: auto;  /* 只在Y轴上滚动 */
+    height: 100vh;     /* 使高度等于视口高度 */
+}
+.layui-tab-content{
+    overflow-y: auto;  /* 只在Y轴上滚动 */
+    height: 100vh;     /* 使高度等于视口高度 */
+}
+.layui-table td, .layui-table th {
+    font-size: 14px; 
+    padding: 5px;
+}
     .progress-label {
     text-align: center;
     color: #666;
