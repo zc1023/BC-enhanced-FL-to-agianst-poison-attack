@@ -57,7 +57,9 @@ def add_user_to_json(filename, username, password):
     new_user = {
         "id": shortuuid.uuid(),
         "username": username,
-        "password": password
+        "password": password,
+        "key": "key",
+        "balance": 123
     }
 
     # 将新用户添加到列表中
@@ -199,7 +201,31 @@ def info():
     # user = User.query.filter_by(id=session[web_config.FRONT_USER_ID]).first()
     username = user['username']
 
-    return render_template('info.html', username=username)
+    return render_template('info.html', username=username, key=user['key'], balance=user['balance'])
+
+@app.route('/update_user', methods=['GET', 'POST'])
+@login_required
+def update_user():
+    if request.method == 'POST':
+        parameters = {
+            'username': request.form.get('username'),
+            'key': request.form.get('key'),
+        }
+        with open('users.json', 'r') as file:
+            data = json.load(file)
+        for item in data:
+            if item['id'] == session[web_config.FRONT_USER_ID]:
+                item['username'] = parameters['username']  # 更改为你的新username
+                item['key'] = parameters['key']  # 更改为你的新key
+                break
+        with open('users.json', 'w') as file:
+            json.dump(data, file) 
+    user_id_from_session = session[web_config.FRONT_USER_ID]
+    user = find_user_by_id('users.json', user_id_from_session)
+    username = user['username']
+
+    return render_template('info.html', username=username, key=user['key'], balance=user['balance'])
+
 
 
 if __name__ == '__main__':
