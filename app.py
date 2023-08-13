@@ -2,27 +2,15 @@ from logging import NOTSET
 from operator import mod
 import re
 from flask import Flask, request, render_template, session, redirect, url_for
-from flask_sqlalchemy import model
-from exits import db
-from sqlalchemy.sql import func
 import web_config
 from decorators import login_required
 import json, time
 from flask import jsonify
 app = Flask(__name__)
 app.config.from_object(web_config)
-db.__init__(app)
 
-from exits import db
 import shortuuid
-import main
-class User(db.Model):
-    id = db.Column(db.String(100),primary_key=True,default=shortuuid.uuid)
-    username = db.Column(db.String(50),nullable=False)
-    password = db.Column(db.String(100), nullable=False)
-
-with app.app_context():
-    db.create_all()
+# import main
 
 
 def StrToTime(strs):
@@ -35,6 +23,15 @@ def TimeToStr(timeStamp):
     temp = time.strftime("%Y-%m-%d %H:%M:%S", timeArray)
     return temp
 
+def find_user_by_username(filename, username):
+    with open(filename, 'r') as file:
+        users = json.load(file)
+        
+        for user in users:
+            if user['username'] == username:
+                return user
+        return None
+
 # login page
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -44,13 +41,31 @@ def login():
     username = request.form.get('username')
     pwd = request.form.get('password')    
 
-
-    user = User.query.filter_by(username=username).first()
-    if user and user.password == pwd:
-        session[web_config.FRONT_USER_ID] = user.id
+    user = find_user_by_username('users.json', username)
+    # user = User.query.filter_by(username=username).first()
+    if user and user['password'] == pwd:
+        session[web_config.FRONT_USER_ID] = user['id']
 
     return redirect(url_for('home'))
 
+def add_user_to_json(filename, username, password):
+    # 加载当前的用户列表
+    with open(filename, 'r') as file:
+        users = json.load(file)
+
+    # 创建新用户
+    new_user = {
+        "id": shortuuid.uuid(),
+        "username": username,
+        "password": password
+    }
+
+    # 将新用户添加到列表中
+    users.append(new_user)
+
+    # 将更新后的列表写回 JSON 文件
+    with open(filename, 'w') as file:
+        json.dump(users, file)
 
 # register page
 @app.route('/register', methods=['POST'])
@@ -59,10 +74,7 @@ def register():
     username = request.form.get('username')
     pwd = request.form.get('password')
 
-    user = User(username=username, password=pwd)
-    db.session.add(user)
-    db.session.commit()
-
+    add_user_to_json('users.json', username, pwd)
     return render_template('register.html',username=username, pwd=pwd )
 
 
@@ -72,20 +84,33 @@ def logout():
     return redirect(url_for('login'))
 
 
+def find_user_by_id(filename, user_id):
+    with open(filename, 'r') as file:
+        users = json.load(file)
+        
+        for user in users:
+            if user['id'] == user_id:
+                return user
+        return None
+
 # home page
 @app.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
-    user = User.query.filter_by(id=session[web_config.FRONT_USER_ID]).first()
-    username = user.username
+    user_id_from_session = session[web_config.FRONT_USER_ID]
+    user = find_user_by_id('users.json', user_id_from_session)
+    # user = User.query.filter_by(id=session[web_config.FRONT_USER_ID]).first()
+    username = user['username']
     return render_template('home.html', username=username)
 
 
 @app.route('/home', methods=['GET', 'POST'])
 @login_required
 def home():
-    user = User.query.filter_by(id=session[web_config.FRONT_USER_ID]).first()
-    username = user.username
+    user_id_from_session = session[web_config.FRONT_USER_ID]
+    user = find_user_by_id('users.json', user_id_from_session)
+    # user = User.query.filter_by(id=session[web_config.FRONT_USER_ID]).first()
+    username = user['username']
     return render_template('home.html', username=username)
 
 
@@ -99,27 +124,72 @@ def welcome():
 @app.route('/train', methods=['GET', 'POST'])
 @login_required
 def train():
-
+    stop = 1
     if request.method == 'POST':
         parameters = {
             'batch_size': request.form.get('batch_size'),
             'local_epoch_num': request.form.get('local_epoch_num'),
             'dataset': request.form.get('dataset'),
-            'data_type': request.form.get('data_type'),
             'seed': request.form.get('seed'),
             'optimizer': request.form.get('optimizer'),
             'validation_nodes_num': request.form.get('validation_nodes_num'),
-            'flipping_attack_num': request.form.get('flipping_attack_num'),
             'model': request.form.get('model')
         }
+        stop = 0
         
-        main.train(parameters)
+        # main.train(parameters)
+
+    user_id_from_session = session[web_config.FRONT_USER_ID]
+    user = find_user_by_id('users.json', user_id_from_session)
+    # user = User.query.filter_by(id=session[web_config.FRONT_USER_ID]).first()
+    username = user['username']
+    client_data = read_clients()
+    return render_template('train.html', username=username,client_data=client_data, stop=stop)
 
 
-    user = User.query.filter_by(id=session[web_config.FRONT_USER_ID]).first()
-    username = user.username
-    return render_template('train.html', username=username,stop=0)
+def add_client_to_json(filename, userid, username, data_address):
+    # 加载当前的用户列表
+    with open(filename, 'r') as file:
+        users = json.load(file)
 
+    # 创建新用户
+    new_user = {
+        "client_id": userid,
+        "client": 'client_'+username,
+        "data_address": data_address
+    }
+
+    # 将新用户添加到列表中
+    users.append(new_user)
+
+    # 将更新后的列表写回 JSON 文件
+    with open(filename, 'w') as file:
+        json.dump(users, file)
+
+
+def read_clients():
+    with open('train_clients.json', 'r') as file:
+        data = json.load(file)
+        clients_list = [ [value["client_id"], value["client"], value["data_address"]] for value in data]
+        return clients_list
+
+@app.route('/join', methods=['GET', 'POST'])
+@login_required
+def join():
+    data_address = request.args.get('address') 
+    user_id_from_session = session[web_config.FRONT_USER_ID]
+    user = find_user_by_id('users.json', user_id_from_session)
+    # user = User.query.filter_by(id=session[web_config.FRONT_USER_ID]).first()
+    username = user['username']
+    add_client_to_json('train_clients.json', user['id'], username, data_address)
+    
+    client_data = {
+        'client':'client_'+username,
+        'client_id':user_id_from_session,
+        'data_address':data_address
+    }
+    return jsonify(client_data)
+    # return render_template('train.html', username=username,client_data=client_data, stop=0)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port='5002')
