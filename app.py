@@ -48,7 +48,7 @@ def login():
 
     return redirect(url_for('home'))
 
-def add_user_to_json(filename, username, password):
+def add_user_to_json(filename, username, password, key):
     # 加载当前的用户列表
     with open(filename, 'r') as file:
         users = json.load(file)
@@ -58,7 +58,7 @@ def add_user_to_json(filename, username, password):
         "id": shortuuid.uuid(),
         "username": username,
         "password": password,
-        "key": "key",
+        "key": key,
         "balance": 123
     }
 
@@ -75,8 +75,9 @@ def register():
 
     username = request.form.get('username')
     pwd = request.form.get('password')
+    key = request.form.get('key')
 
-    add_user_to_json('users.json', username, pwd)
+    add_user_to_json('users.json', username, pwd, key)
     return render_template('register.html',username=username, pwd=pwd )
 
 
