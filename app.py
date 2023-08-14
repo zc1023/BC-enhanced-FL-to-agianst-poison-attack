@@ -127,7 +127,32 @@ def welcome():
 @app.route('/train', methods=['GET', 'POST'])
 @login_required
 def train():
-    stop = 1
+    user_id_from_session = session[web_config.FRONT_USER_ID]
+    user = find_user_by_id('users.json', user_id_from_session)
+    # user = User.query.filter_by(id=session[web_config.FRONT_USER_ID]).first()
+    username = user['username']
+    stop = 0
+    if request.method == 'POST':
+        parameters = {
+            'room_num': request.form.get('room_num'),
+            'data_address': request.form.get('data_address'),
+            'p_key': request.form.get('p_key')
+        }
+        stop = parameters['room_num']
+        filename = 'room'+parameters['room_num']+ ".json"
+
+        add_client_to_json(filename, user['id'], username, parameters['data_address'], parameters['p_key'])
+   
+        # main.train(parameters)
+    
+    return render_template('train.html', username=username,stop=stop)
+
+
+# custom management page
+@app.route('/create', methods=['GET', 'POST'])
+@login_required
+def create():
+    stop = 0
     if request.method == 'POST':
         parameters = {
             'batch_size': request.form.get('batch_size'),
@@ -138,19 +163,76 @@ def train():
             'validation_nodes_num': request.form.get('validation_nodes_num'),
             'model': request.form.get('model')
         }
-        stop = 0
+        with open("room_num.txt", "r") as file:
+            num = int(file.read().strip())
+        filename = 'room'+str(num) + ".json"
+
+        with open('parameters-'+'room'+str(num)+'.txt', "w") as file:
+            file.write(str(parameters))
+
+        stop = num
+        data_address = "admin"
+        user_id_from_session = session[web_config.FRONT_USER_ID]
+        user = find_user_by_id('users.json', user_id_from_session)
+        username = user['username']
+
+        new_user = {
+            "client_id": user['id'],
+            "client": 'client_'+username,
+            "data_address": data_address,
+            "key": user['key']
+        }
+        with open(filename, "w") as json_file:
+            json.dump([new_user], json_file)
+        with open("room_num.txt", 'w') as file:
+            file.write(str(num+1))
         
-        # main.train(parameters)
 
     user_id_from_session = session[web_config.FRONT_USER_ID]
     user = find_user_by_id('users.json', user_id_from_session)
-    # user = User.query.filter_by(id=session[web_config.FRONT_USER_ID]).first()
     username = user['username']
-    client_data = read_clients()
-    return render_template('train.html', username=username,client_data=client_data, stop=stop)
+    return render_template('creation.html', username=username, stop=stop)
 
+@app.route('/myroom', methods=['GET', 'POST'])
+@login_required
+def myroom():
+    user_id_from_session = session[web_config.FRONT_USER_ID]
+    user = find_user_by_id('users.json', user_id_from_session)
+    username = user['username']
+    stop = 0
+    is_in_room=0
+    clients_list=[[0,0,0]]
+    room_num=0
+    is_admin=0
+    stop=0
+    if request.method == 'POST':
+        # main.train()
+        stop = 1
+    with open("room_num.txt", "r") as file:
+        num = int(file.read().strip())
+    if num == 1:
+        return render_template("myroom.html", is_in_room=is_in_room,username=username, client_list=clients_list,room_num=room_num, is_admin=is_admin,stop=stop)
 
-def add_client_to_json(filename, userid, username, data_address):
+    room_num = -1
+    is_admin = 0
+    for i in range(num-1, 0, -1):   
+        filename = 'room' + str(i) + ".json"
+        clients_list = read_clients(filename)
+        is_in_room = 0
+        if any(client[0] == user_id_from_session for client in clients_list):
+            is_in_room = 1
+            room_num = i
+            if any(client[0] == user_id_from_session and client[2] == 'admin' for client in clients_list):
+                is_admin = 1
+
+            clients_list.pop(0)
+            for client in clients_list:
+                user = find_user_by_id('users.json', client[0])
+                client[3] = user['key']
+            break  # 如果is_in_room变为1，则退出循环
+    return render_template("myroom.html", is_in_room=is_in_room,username=username, client_list=clients_list,room_num=room_num, is_admin=is_admin,stop=stop)
+
+def add_client_to_json(filename, userid, username, data_address, key):
     # 加载当前的用户列表
     with open(filename, 'r') as file:
         users = json.load(file)
@@ -159,7 +241,8 @@ def add_client_to_json(filename, userid, username, data_address):
     new_user = {
         "client_id": userid,
         "client": 'client_'+username,
-        "data_address": data_address
+        "data_address": data_address,
+        "key": key
     }
 
     # 将新用户添加到列表中
@@ -170,10 +253,10 @@ def add_client_to_json(filename, userid, username, data_address):
         json.dump(users, file)
 
 
-def read_clients():
-    with open('train_clients.json', 'r') as file:
+def read_clients(filename):
+    with open(filename, 'r') as file:
         data = json.load(file)
-        clients_list = [ [value["client_id"], value["client"], value["data_address"]] for value in data]
+        clients_list = [ [value["client_id"], value["client"], value["data_address"], value["key"]] for value in data]
         return clients_list
 
 @app.route('/join', methods=['GET', 'POST'])
@@ -184,7 +267,7 @@ def join():
     user = find_user_by_id('users.json', user_id_from_session)
     # user = User.query.filter_by(id=session[web_config.FRONT_USER_ID]).first()
     username = user['username']
-    add_client_to_json('train_clients.json', user['id'], username, data_address)
+    add_client_to_json('train_clients.json', user['id'], username, data_address, user['key'])
     
     client_data = {
         'client':'client_'+username,

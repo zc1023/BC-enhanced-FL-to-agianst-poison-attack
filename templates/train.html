@@ -86,11 +86,23 @@
             <div id="side-nav">
                 <ul id="nav">
                     <li>
+                        <a  href="/create" >
+                            <i class="iconfont left-nav-li" lay-tips="模型训练">&#xe702;</i>
+                            <cite>创建房间</cite>
+                        </a>
+                    </li>                    
+                    <li>
                         <a  href="/train" >
                             <i class="iconfont left-nav-li" lay-tips="模型训练">&#xe702;</i>
-                            <cite>模型训练</cite>
+                            <cite>加入房间</cite>
                         </a>
                     </li>
+                    <li>
+                        <a  href="/myroom" >
+                            <i class="iconfont left-nav-li" lay-tips="模型训练">&#xe702;</i>
+                            <cite>我的房间</cite>
+                        </a>
+                    </li>                    
                     <li>
                         <a  href="/info" >
                             <i class="iconfont left-nav-li" lay-tips="个人信息">&#xe702;</i>
@@ -108,7 +120,7 @@
                 <ul class="layui-tab-title">
                     <li class="home">
                         <!-- <i class="layui-icon">&#xe68e;</i>我的桌面 -->
-                        模型训练
+                        加入房间
                     </li>
                 </ul>
 
@@ -121,9 +133,9 @@
                                     <div class="layui-card-body ">
                                         <form class="layui-form layui-col-space5" action="/train" method='POST'>
                                             <div class="layui-input-inline layui-show-xs-block">
-                                                <input type="text" name="batch_size" placeholder="批次大小" autocomplete="off" class="layui-input"></div>                                           
+                                                <input type="text" name="room_num" placeholder="房间号" autocomplete="off" class="layui-input"></div>                                           
                                             <div class="layui-input-inline layui-show-xs-block">
-                                                <input type="text" name="local_epoch_num" placeholder="局部迭代轮数" autocomplete="off" class="layui-input"></div>
+                                                <input type="text" name="data_address" placeholder="数据地址" autocomplete="off" class="layui-input"></div>
 <!-- 
                                                 <div class="layui-input-inline layui-show-xs-block">
 
@@ -135,122 +147,17 @@
                                             
                                             </div> -->
                                             <div class="layui-input-inline layui-show-xs-block">
-                                                <input type="text" name="dataset" placeholder="数据集" autocomplete="off" class="layui-input"></div>                                            
-                                            <div class="layui-input-inline layui-show-xs-block">
-                                                <input type="text" name="seed" placeholder="种子" autocomplete="off" class="layui-input"></div>
-                                            <div class="layui-input-inline layui-show-xs-block">
-                                                <input type="text" name="optimizer" placeholder="优化器" autocomplete="off" class="layui-input"></div>
-                                            <div class="layui-input-inline layui-show-xs-block">
-                                                <input type="text" name="validation_nodes_num" placeholder="验证节点数" autocomplete="off" class="layui-input"></div>
-
-                                            <div class="layui-input-inline layui-show-xs-block">
-                                                <input type="text" name="model" placeholder="模型" autocomplete="off" class="layui-input"></div>
+                                                <input type="text" name="p_key" placeholder="区块链私钥" autocomplete="off" class="layui-input"></div>                                            
                                                 <div class="layui-input-inline lafite_search layui-show-xs-block">
         
                                                         <button class="layui-btn" id="submitButton" lay-submit="">
-                                                            开始训练</button>                                                                                                            
+                                                            加入房间</button>                                                                                                            
                                                 <!-- <a class="layui-btn" lay-submit="" lay-filter="sreach" onclick="xadmin.open('编辑','/train_add_page')"  href="javascript:;">
                                                         添加</a> -->
                                             </div>
                                         </form>
                                     </div>
-                                    <div class="layui-input-inline lafite_search layui-show-xs-block">
-        
-                                    <button class="layui-btn" id="loadClient" action="/join">
-                                        客户端加入训练</button>
-                                    </div>
-                                           
-                                            <div class="layui-progress custom-progress" lay-filter="demo"  lay-showPercent="true" id="myProgressBar">
-                                                
-                                                <div class="layui-progress-bar" lay-percent="0%"></div>
-                                            </div>
-                                            <p class="progress-label">训练进度</p>
-                                    <div class="layui-card-body">
-                                        <div class="layui-row layui-col-space15" id="clientsCards">
-                                            <!-- {% for clients in client_data %}
-        
-                                            <div class="layui-col-md4">
-                                                <div class="layui-card">
-                                                  <div class="layui-card-header">客户端ID: {{clients[0]}} </div>
-                                                  <div class="layui-card-header">客户端名称: {{clients[1]}} </div>
-                                                  <div class="layui-card-header">数据地址: {{clients[2]}} </div>
-                                                  <div class="layui-card-body">
-                                                    
-                                                  </div>
-                                                </div>
-                                            </div>
-                                            {% endfor %} -->
-                                            <table class="layui-table">
-                                                <colgroup>
-                                                    <col width="250">
-                                                    <col width="200">
-                                                    <col>
-                                                </colgroup>
-                                                <thead>
-                                                    <tr>
-                                                        <th>客户端ID</th>
-                                                        <th>客户端名称</th>
-                                                        <th>数据地址</th>
-                                                    </tr> 
-                                                </thead>
-                                                <tbody id="clientsTBody">
-                                                    {% for clients in client_data %}
-                                                        <tr>
-                                                            <td>{{clients[0]}}</td>
-                                                            <td>{{clients[1]}}</td>
-                                                            <td>{{clients[2]}}</td>
-                                                        </tr>
-                                                    {% endfor %}
-                                                </tbody>
-                                            </table>
-                                            
-                                        </div>
-                                    </div>
-
-                                        <script>
-                                            // function sleep(millisecond) {
-                                            //     return new Promise(resolve => {
-                                            //         setTimeout(() => {
-                                            //         resolve()
-                                            //         }, millisecond)
-                                            //     });
-                                            // }
-
-                                            function dele(id){
-                                              layui.use('layer',function(){
-                                                  var layer = layui.layer;
-                                                    layer.msg('你确定删除么？', {
-                                                    btn: ['确定', '取消'],
-                                                    yes: function(index){
-                                                        console.log(id);
-                                                        $.ajax({
-                                                            url:"/train_delete",
-                                                            data:{'id':id},
-                                                            type:"Post",
-                                                            dataType:"json",
-                                                            success: function (res) {
-                                                                if(res.state == 'yes'){
-                                                                    parent.location.replace("/new");
-                                                                }
-                                                                if(res.state == 'no'){
-                                                                    alert("此客户存在关联账户，不允许删除！")
-                                                                }
-                                                                if(res.state == 'nol'){
-                                                                    alert("此客户存在贷款，不允许删除！")
-                                                                }
-                                                            }
-                                                        
-                                                        });
-                                                        layer.close(index);
-                                                    },
-                                                });
-                                                
-                                              });
-                                              
-                                          };
-                                          
-                                        </script>
-                                    
+                         
                                     </div> 
                                     <!-- <div class="layui-card-body ">
                                         <div class="page">
@@ -327,77 +234,25 @@ layui.use(['laydate', 'form', 'upload'],
 //             });
 //         });
 
-layui.use(['jquery', 'element', 'layer'], function() {
-    var $ = layui.jquery;
-    var element = layui.element;
-    var layer = layui.layer;
-    $('#loadClient').click(function() {
-        layer.prompt({title: '请输入数据地址', formType: 2}, function(dataAddress, index){
-        layer.close(index);
-        $.ajax({
-            url: '/join',
-            method: 'GET',
-            data: { address: dataAddress },
-            // success: function(data) {
-            //     var content = '<div class="layui-col-md4">' +
-            //                       '<div class="layui-card">' +
-            //                         '<div class="layui-card-header">' + '客户端ID: ' + data.client_id + '</div>'+
-            //                         '<div class="layui-card-header">' + '客户端名称: '+ data.client + '</div>'+
-            //                         '<div class="layui-card-header">' + '数据地址: '+ data.data_address + '</div>' +
-            //                         '<div class="layui-card-body">' +
-
-            //                         '</div>' +
-            //                       '</div>' +
-            //                   '</div>';
-
-            //     $('#clientsCards').append(content);
-            // },
-            success: function(data) {
-            var newRow = '<tr>' +
-                 '<td>' + data.client_id + '</td>' +
-                 '<td>' + data.client + '</td>' +
-                 '<td>' + data.data_address + '</td>' +
-                 '</tr>';
-    
-            $('#clientsTBody').append(newRow);
-        },
-            error: function() {
-                alert("加载数据失败!");
-            }
-        });
-    });
-});
-});
-
 layui.use(['element', 'layer'], function(){
     var element = layui.element; // 将element初始化移到这里
     var layer = layui.layer;
         var progress = 0;
 
-        function increaseProgress() {
-            if (progress < 100) {
-                progress += 10;  // 增加10%进度
-                element.progress('demo', progress + '%');
-                setTimeout(increaseProgress, 500);  // 0.5秒后再次更新
-            } else{
-                showIpfsAddress();
-            }
-        }
-        function showIpfsAddress() {
-        var ipfsAddress = "your_ipfs_address_here";
+        function showsuccessMsg() {
+        var Msg = "房间加入成功，房间号为"+{{stop}};
         
         layer.open({
-            title: '训练完成',
-            content: 'IPFS地址是: ' + ipfsAddress
+            title: '创建成功',
+            content: Msg
         });
     }
         var is_train = {{ stop|tojson|safe }};
         console.log(is_train)
-        if(!is_train){
-        increaseProgress();  // 开始动态加载进度
+        if(is_train){
+            showsuccessMsg();  
     }
 });
-
 
 
 // layui.use('element', function(){
