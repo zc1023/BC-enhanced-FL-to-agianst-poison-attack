@@ -32,31 +32,7 @@
         <div class="container">
             <div class="logo">
                 <a href="/home">金融风控联邦学习系统</a></div>
-            <div class="left_open">
-                <a><i title="展开左侧栏" class="iconfont">&#xe699;</i></a>
-            </div>
-            <!-- <ul class="layui-nav left fast-add" lay-filter="">
-                <li class="layui-nav-item">
-                    <a href="javascript:;">+新增</a>
-                    <dl class="layui-nav-child">
-                        <dd>
-                            <a onclick="xadmin.open('最大化','http://www.baidu.com','','',true)">
-                                <i class="iconfont">&#xe6a2;</i>弹出最大化</a></dd>
-                        <dd>
-                            <a onclick="xadmin.open('弹出自动宽高','http://www.baidu.com')">
-                                <i class="iconfont">&#xe6a8;</i>弹出自动宽高</a></dd>
-                        <dd>
-                            <a onclick="xadmin.open('弹出指定宽高','http://www.baidu.com',500,300)">
-                                <i class="iconfont">&#xe6a8;</i>弹出指定宽高</a></dd>
-                        <dd>
-                            <a onclick="xadmin.add_tab('在tab打开','member-list.html')">
-                                <i class="iconfont">&#xe6b8;</i>在tab打开</a></dd>
-                        <dd>
-                            <a onclick="xadmin.add_tab('在tab打开刷新','member-del.html',true)">
-                                <i class="iconfont">&#xe6b8;</i>在tab打开刷新</a></dd>
-                    </dl>
-                </li>
-            </ul> -->
+ 
             <ul class="layui-nav right" lay-filter="">
                 <li class="layui-nav-item">
                     <a href="javascript:;">
@@ -133,38 +109,25 @@
                                     <div class="layui-card-body ">
                                         <form class="layui-form layui-col-space5" action="/create" method='POST'>
                                             <div class="layui-input-inline layui-show-xs-block">
-                                                <input type="text" name="batch_size" placeholder="批次大小" autocomplete="off" class="layui-input"></div>                                           
+                                                <input type="text" name="batch_size" placeholder="批次大小" autocomplete="off" class="layui-input" required></div>
                                             <div class="layui-input-inline layui-show-xs-block">
-                                                <input type="text" name="local_epoch_num" placeholder="局部迭代轮数" autocomplete="off" class="layui-input"></div>
-<!-- 
-                                                <div class="layui-input-inline layui-show-xs-block">
-
-                                                    <select name="dataset" lay-filter="aihao">
-                                                      <option value="CIFAR10" name="dataset" selected="CIFAR10">CIFAR10</option>
-                                                      <option value="CIFAR10" name="dataset" >MNIST</option>
-                                                    </select>
-
-                                            
-                                            </div> -->
+                                                <input type="text" name="local_epoch_num" placeholder="局部迭代轮数" autocomplete="off" class="layui-input" required></div>
                                             <div class="layui-input-inline layui-show-xs-block">
-                                                <input type="text" name="dataset" placeholder="数据集" autocomplete="off" class="layui-input"></div>                                            
+                                                <input type="text" name="global_epoch" placeholder="全局轮次" autocomplete="off" class="layui-input" required></div>                                            
                                             <div class="layui-input-inline layui-show-xs-block">
-                                                <input type="text" name="seed" placeholder="种子" autocomplete="off" class="layui-input"></div>
+                                                <input type="text" name="seed" placeholder="种子" autocomplete="off" class="layui-input" required></div>
                                             <div class="layui-input-inline layui-show-xs-block">
-                                                <input type="text" name="optimizer" placeholder="优化器" autocomplete="off" class="layui-input"></div>
+                                                <input type="text" name="optimizer" placeholder="优化器" autocomplete="off" class="layui-input" required></div>
                                             <div class="layui-input-inline layui-show-xs-block">
-                                                <input type="text" name="validation_nodes_num" placeholder="验证节点数" autocomplete="off" class="layui-input"></div>
-
+                                                <input type="text" name="validation_nodes_num" placeholder="验证节点数" autocomplete="off" class="layui-input" required></div>
                                             <div class="layui-input-inline layui-show-xs-block">
-                                                <input type="text" name="model" placeholder="模型" autocomplete="off" class="layui-input"></div>
-                                                <div class="layui-input-inline lafite_search layui-show-xs-block">
-        
-                                                        <button class="layui-btn" id="submitButton" lay-submit="">
-                                                            创建房间</button>                                                                                                            
-                                                <!-- <a class="layui-btn" lay-submit="" lay-filter="sreach" onclick="xadmin.open('编辑','/train_add_page')"  href="javascript:;">
-                                                        添加</a> -->
+                                                <input type="text" name="model" placeholder="模型" autocomplete="off" class="layui-input" required></div>
+                                            <div class="layui-input-inline lafite_search layui-show-xs-block">
+                                                <button class="layui-btn" id="submitButton" lay-submit="">
+                                                    创建房间</button>
                                             </div>
                                         </form>
+                                        
                                     </div>
 
                                     </div> 
@@ -320,7 +283,7 @@ layui.use(['element', 'layer'], function(){
         var progress = 0;
 
         function showsuccessMsg() {
-        var Msg = "房间创建成功，房间号为"+{{stop}};
+        var Msg = "房间创建成功，房间号为"+'cql的房间';
         
         layer.open({
             title: '创建成功',
@@ -334,6 +297,26 @@ layui.use(['element', 'layer'], function(){
     }
 });
 
+
+layui.use(['element', 'layer'], function(){
+    var element = layui.element; // 将element初始化移到这里
+    var layer = layui.layer;
+        var progress = 0;
+
+        function showsuccessMsg() {
+        var Msg = "您已经加入了一个房间，不能创建房间。";
+        
+        layer.open({
+            title: '错误',
+            content: Msg
+        });
+    }
+        var is_train = {{ is_in_room|tojson|safe }};
+        console.log(is_train)
+        if(is_train){
+            showsuccessMsg();  // 开始动态加载进度
+    }
+});
 // layui.use('element', function(){
 //     var element = layui.element;
 

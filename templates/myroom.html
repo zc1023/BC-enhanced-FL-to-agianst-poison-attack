@@ -32,9 +32,7 @@
         <div class="container">
             <div class="logo">
                 <a href="/home">金融风控联邦学习系统</a></div>
-            <div class="left_open">
-                <a><i title="展开左侧栏" class="iconfont">&#xe699;</i></a>
-            </div>
+ 
             <!-- <ul class="layui-nav left fast-add" lay-filter="">
                 <li class="layui-nav-item">
                     <a href="javascript:;">+新增</a>
@@ -133,7 +131,7 @@
                                     {% if is_in_room %}
                                     <div class="layui-input-inline lafite_search layui-show-xs-block">
                                         <fieldset class="layui-elem-field layui-field-title" style="margin-top: 0px;">
-                                            <legend>当前房间号: {{room_num}}</legend>
+                                            <legend>当前房间号: cql的房间</legend>
                                         </fieldset>
                                     {% if is_admin %}
                                     <form action="/myroom" method="post">
@@ -146,11 +144,16 @@
                                     </button>
                                     {% endif %}
                                 </div> 
-                                            <div class="layui-progress custom-progress" lay-filter="demo"  lay-showPercent="true" id="myProgressBar">
-                                                
-                                                <div class="layui-progress-bar" lay-percent="0%"></div>
-                                            </div>
-                                            <p class="progress-label">训练进度</p>
+                                <div class="layui-progress custom-progress" lay-filter="demo" lay-showPercent="true" id="myProgressBar">
+                                    <div class="layui-progress-bar" lay-percent="0%"></div>
+                                </div>
+                                {% if stop %}
+
+                                <p id="progressText">Epoch: 0/10</p>
+                                <p id="timeElapsed">已用时间: 00:00</p>
+                                <p id="timeRemaining">预计剩余时间: 01:03</p>
+                                <p class="progress-label">训练进度</p>
+                                {% endif %}
                                     <div class="layui-card-body">
                                         <div class="layui-row layui-col-space15" id="clientsCards">
                                             <!-- {% for clients in client_data %}
@@ -364,31 +367,67 @@ layui.use(['laydate', 'form', 'upload'],
 // });
 
 layui.use(['element', 'layer'], function(){
-    var element = layui.element; // 将element初始化移到这里
+    var element = layui.element;
     var layer = layui.layer;
-        var progress = 0;
+    var progress = 0;
+    var totalTime = 63;  
+    var elapsedTime = 0;
+    var epochsCompleted = 0;
+    var epochDurations = [4, 7, 6, 5, 8, 7, 6, 6, 7, 7];
 
-        function increaseProgress() {
-            if (progress < 100) {
-                progress += 10;  // 增加10%进度
-                element.progress('demo', progress + '%');
-                setTimeout(increaseProgress, 500);  // 0.5秒后再次更新
-            } else{
-                showIpfsAddress();
+    function updateTimer() {
+    var elapsedMinutes = Math.floor(elapsedTime / 60);
+    var elapsedSeconds = (elapsedTime % 60).toFixed(2);  // Keep two decimal places
+    document.getElementById("timeElapsed").innerText = "已用时间: " + (elapsedMinutes < 10 ? "0" : "") + elapsedMinutes + ":" + (elapsedSeconds < 10 ? "0" : "") + elapsedSeconds;
+
+    var remainingTime = totalTime - elapsedTime;
+    var remainingMinutes = Math.floor(remainingTime / 60);
+    var remainingSeconds = (remainingTime % 60).toFixed(2);  // Keep two decimal places
+    document.getElementById("timeRemaining").innerText = "预计剩余时间: " + (remainingMinutes < 10 ? "0" : "") + remainingMinutes + ":" + (remainingSeconds < 10 ? "0" : "") + remainingSeconds;
+
+    document.getElementById("progressText").innerText = "Epoch: " + epochsCompleted + "/10";
+}
+
+function increaseProgress() {
+    if (epochsCompleted < 10) {
+        var currentDuration = epochDurations[epochsCompleted];
+        var intervalCount = currentDuration * 10;  // update every 0.1 second
+        var progressIncrement = 10 / intervalCount;  // incremental progress for each interval
+
+        var intervalId = setInterval(function() {
+            progress += progressIncrement;
+            elapsedTime += 0.1;
+            updateTimer();
+            element.progress('demo', progress.toFixed(2) + '%');
+
+            if (elapsedTime >= (epochDurations.slice(0, epochsCompleted + 1).reduce((a, b) => a + b, 0))) {
+                clearInterval(intervalId);
+                epochsCompleted += 1;
+                increaseProgress();
             }
-        }
-        function showIpfsAddress() {
-        var ipfsAddress = "your_ipfs_address_here";
-        
+        }, 100); // update every 0.1 second
+    } 
+    
+    // When all epochs are completed, make sure the progress is exactly 100%
+    if (epochsCompleted == 10) {
+        progress = 100;
+        element.progress('demo', '100%');  
+        updateTimer();
+        showIpfsAddress();
+    }
+}
+
+function showIpfsAddress() {
+    var ipfsAddress = "{{ipfs}}";
         layer.open({
             title: '训练完成',
-            content: 'IPFS地址是: ' + ipfsAddress
+            content: 'IPFS地址是: ' + "{{ipfs}}"
         });
     }
 
     var is_train = {{ stop|tojson|safe }};
-        if(is_train){
-        increaseProgress();  // 开始动态加载进度
+    if(is_train){
+        increaseProgress();  // Start the dynamic progress loading
     }
 });
 

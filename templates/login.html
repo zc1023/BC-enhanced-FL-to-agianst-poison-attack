@@ -90,7 +90,7 @@
 									<div class="tab-content">
 										<div class="tab-content-inner active" data-content="signup" id='form'>
 
-											<form onsubmit="return validate()" id='send' action="/register" method="POST" >
+											<form onsubmit="return validateInput();" id='send' action="/register" method="POST" >
 												<div class="row form-group">
 													<div class="col-md-12">
 														<label for="username">用户名</label>
@@ -106,7 +106,8 @@
 												<div class="row form-group">
 													<div class="col-md-12">
 														<label for="key">公钥</label>
-														<input type="text" class="form-control" name="key">
+														<input type="text" class="form-control" name="key" id="key">
+														<span id="keyError" style="color:red;"></span>
 													</div>
 												</div>
 
@@ -182,7 +183,20 @@
 	<!-- Main -->
 	<script src="static/js/main.js"></script>
     <script type="text/javascript">
+    function validateInput() {
+        const keyInput = document.getElementById('key');
+        const keyErrorSpan = document.getElementById('keyError');
 
+        // 验证公钥字符数
+        if (keyInput.value.length !==  130) {
+            keyErrorSpan.textContent = '公钥的字符数必须为 130个。';
+            return false; // 阻止表单提交
+        }
+
+        // 如果所有验证都通过，则清除错误信息并提交表单
+        keyErrorSpan.textContent = '';
+        return true;
+    }
         function validate() {
                     var n1 = document.getElementById("password");
                     var n2 = document.getElementById("password2");

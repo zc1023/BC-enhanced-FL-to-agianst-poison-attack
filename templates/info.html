@@ -32,9 +32,7 @@
         <div class="container">
             <div class="logo">
                 <a href="/home">金融风控联邦学习系统</a></div>
-            <div class="left_open">
-                <a><i title="展开左侧栏" class="iconfont">&#xe699;</i></a>
-            </div>
+ 
             <!-- <ul class="layui-nav left fast-add" lay-filter="">
                 <li class="layui-nav-item">
                     <a href="javascript:;">+新增</a>
@@ -145,7 +143,11 @@
                                                 <li class="layui-timeline-item">
                                                     <i class="layui-icon layui-timeline-axis">&#xe63f;</i>
                                                     <div class="layui-timeline-content layui-text">
-                                                        <h3 class="layui-timeline-title">公钥: {{key}}</h3>
+                                                        <h3 class="layui-timeline-title">公钥: <br><br>
+                                                            {{ key_part1 }}<br>
+                                                                 {{ key_part2 }}<br>
+                                                            {{ key_part3 }}
+                                                        </h3>
                                                     </div>
                                                 </li>
                                                 <li class="layui-timeline-item">
@@ -173,7 +175,9 @@
                                                 <div class="layui-form-item">
                                                     <label class="layui-form-label">公钥</label>
                                                     <div class="layui-input-block">
-                                                        <input type="text" name="key" required lay-verify="required" placeholder="请输入公钥" autocomplete="off" class="layui-input">
+                                                        <!-- 使用 lay-verify="keyLength" 添加新的验证规则 -->
+                                                        <input type="text" name="key" id="key" required lay-verify="keyLength" placeholder="请输入公钥" autocomplete="off" class="layui-input">
+                                                        <span id="keyError" style="color:red;"></span>
                                                     </div>
                                                 </div>
 
@@ -221,7 +225,17 @@
         margin-top: 20px;
         margin-bottom: 20px;
     }
+    .layui-timeline-title {
+        word-wrap: break-word; /* 允许长单词或URLs在需要的地方自动换行 */
+    }
 
+    .key-container {
+        width: calc(43ch);  /* ch is the width of the "0" character */
+        word-wrap: break-word;
+        line-height: 1.4em;
+        max-height: 4.2em; /* three lines */
+        overflow: hidden;
+    }
 .page-content {
     overflow-y: auto;  /* 只在Y轴上滚动 */
     height: 100vh;     /* 使高度等于视口高度 */
@@ -242,11 +256,25 @@
         </style>
         <!-- 右侧主体结束 -->
         <!-- 中部结束 -->
+
     </body>
 </html>
 <script>
 
+layui.use('form', function(){
+        var form = layui.form;
 
+        // 自定义验证规则
+        form.verify({
+            keyLength: function(value){
+                if(value.length !== 130) {
+                    return '公钥的字符数必须为130个。';
+                }
+            }
+        });
+
+        // 其他LayUI相关的代码...
+    });
 layui.use(['laydate', 'form', 'upload'],
         function() {
             var $ = layui.jquery
@@ -295,5 +323,18 @@ layui.use(['laydate', 'form', 'upload'],
 //     element.render('progress');
 // });
 
+function validateInput() {
+        const keyInput = document.getElementById('key');
+        const keyErrorSpan = document.getElementById('keyError');
 
+        // 验证公钥字符数
+        if (keyInput.value.length !== 130) {
+            keyErrorSpan.textContent = '公钥的字符数必须为130个。';
+            return false; // 阻止表单提交
+        }
+
+        // 如果所有验证都通过，则清除错误信息并提交表单
+        keyErrorSpan.textContent = '';
+        return true;
+    }
     </script>

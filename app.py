@@ -5,6 +5,9 @@ from flask import Flask, request, render_template, session, redirect, url_for
 import web_config
 from decorators import login_required
 import json, time
+import re
+from ecdsa import SigningKey, VerifyingKey, SECP256k1
+
 from flask import jsonify
 app = Flask(__name__)
 app.config.from_object(web_config)
@@ -59,7 +62,7 @@ def add_user_to_json(filename, username, password, key):
         "username": username,
         "password": password,
         "key": key,
-        "balance": 123
+        "balance": 10
     }
 
     # 将新用户添加到列表中
@@ -68,6 +71,17 @@ def add_user_to_json(filename, username, password, key):
     # 将更新后的列表写回 JSON 文件
     with open(filename, 'w') as file:
         json.dump(users, file)
+
+def simple_public_key_validation(pub_key: str) -> bool:
+    # 验证公钥长度为130字符，并且以'04'开头
+    if len(pub_key) == 130 and pub_key.startswith('04'):
+        return True
+    
+    # 验证公钥长度为66字符，并且以'02'或'03'开头
+    if len(pub_key) == 66 and (pub_key.startswith('02') or pub_key.startswith('03')):
+        return True
+
+    return False
 
 # register page
 @app.route('/register', methods=['POST'])
@@ -123,6 +137,26 @@ def welcome():
     return render_template('welcome.html')
 
 
+def verify_key_pair(private_key, uncompressed_public_key):
+    try:
+        # 从字节数据创建签名密钥对象
+        sk = SigningKey.from_string(bytes.fromhex(private_key), curve=SECP256k1)
+        
+        # 从未压缩公钥创建验证密钥对象
+        if uncompressed_public_key.startswith('04'):
+            vk = VerifyingKey.from_string(bytes.fromhex(uncompressed_public_key[2:]), curve=SECP256k1)
+        else:
+            return False
+
+        # 生成签名
+        message = b"Hello, world!"  # 用于签名和验证的任意消息
+        signature = sk.sign(message)
+
+        # 验证签名
+        return vk.verify(signature, message)
+    except:
+        return False
+
 # custom management page
 @app.route('/train', methods=['GET', 'POST'])
 @login_required
@@ -138,14 +172,20 @@ def train():
             'data_address': request.form.get('data_address'),
             'p_key': request.form.get('p_key')
         }
+        if verify_key_pair(parameters['p_key'], user['key']) == False:
+            return render_template('train.html', username=username,stop=stop, is_pkey_valid=0)
         stop = parameters['room_num']
+        with open("room_num.txt", "r") as file:
+            num = int(file.read().strip())
+        if parameters['room_num'] == "cql的房间":
+            parameters['room_num'] = str(num-1)
         filename = 'room'+parameters['room_num']+ ".json"
 
         add_client_to_json(filename, user['id'], username, parameters['data_address'], parameters['p_key'])
    
         # main.train(parameters)
     
-    return render_template('train.html', username=username,stop=stop)
+    return render_template('train.html', username=username,stop=stop, is_pkey_valid=1)
 
 
 # custom management page
@@ -153,11 +193,14 @@ def train():
 @login_required
 def create():
     stop = 0
+    user_id_from_session = session[web_config.FRONT_USER_ID]
+    user = find_user_by_id('users.json', user_id_from_session)
+    username = user['username']
     if request.method == 'POST':
         parameters = {
             'batch_size': request.form.get('batch_size'),
             'local_epoch_num': request.form.get('local_epoch_num'),
-            'dataset': request.form.get('dataset'),
+            'global_epoch': request.form.get('global_epoch'),
             'seed': request.form.get('seed'),
             'optimizer': request.form.get('optimizer'),
             'validation_nodes_num': request.form.get('validation_nodes_num'),
@@ -166,19 +209,39 @@ def create():
         with open("room_num.txt", "r") as file:
             num = int(file.read().strip())
         filename = 'room'+str(num) + ".json"
+        
+        if num != 1:
+            room_num = -1
+            is_admin = 0
+            is_in_room = 0
+            for i in range(num-1, 0, -1):   
+                filename = 'room' + str(i) + ".json"
+                clients_list = read_clients(filename)
+                is_in_room = 0
+                if any(client[0] == user_id_from_session for client in clients_list):
+                    is_in_room = 1
+                    room_num = i
+                    if any(client[0] == user_id_from_session and client[2] == 'admin' for client in clients_list):
+                        is_admin = 1
+
+                    clients_list.pop(0)
+                    for client in clients_list:
+                        user = find_user_by_id('users.json', client[0])
+                        client[3] = user['key']
+                    break  # 如果is_in_room变为1，则退出循环
+            if is_in_room:
+                return render_template('creation.html', username=username, stop=stop, is_in_room=is_in_room)
+        
 
         with open('parameters-'+'room'+str(num)+'.txt', "w") as file:
             file.write(str(parameters))
 
         stop = num
         data_address = "admin"
-        user_id_from_session = session[web_config.FRONT_USER_ID]
-        user = find_user_by_id('users.json', user_id_from_session)
-        username = user['username']
 
         new_user = {
             "client_id": user['id'],
-            "client": 'client_'+username,
+            "client": '客户端_'+username,
             "data_address": data_address,
             "key": user['key']
         }
@@ -188,10 +251,21 @@ def create():
             file.write(str(num+1))
         
 
-    user_id_from_session = session[web_config.FRONT_USER_ID]
-    user = find_user_by_id('users.json', user_id_from_session)
-    username = user['username']
-    return render_template('creation.html', username=username, stop=stop)
+
+    return render_template('creation.html', username=username, stop=stop, is_in_room=0)
+
+def update_balance(user_id, change_amount):
+    with open("users.json", "r") as file:
+        users = json.load(file)
+    
+    for user in users:
+        if user["id"] == user_id:
+            user["balance"] -= change_amount  # 减少余额，可以调整为 += 来增加余额
+
+    with open("users.json", "w") as file:
+        json.dump(users, file)
+
+
 
 @app.route('/myroom', methods=['GET', 'POST'])
 @login_required
@@ -205,13 +279,23 @@ def myroom():
     room_num=0
     is_admin=0
     stop=0
+    ipfs = 'null'
+
+    with open("room_num.txt", "r") as file:
+        num = int(file.read().strip())
     if request.method == 'POST':
         # main.train()
         stop = 1
-    with open("room_num.txt", "r") as file:
-        num = int(file.read().strip())
+        ipfs = "ipfs address"
+        filename = 'room' + str(num-1) + ".json"
+        with open(filename, 'r') as file:
+            data = json.load(file)
+        filtered_data = [entry for entry in data if entry['data_address'] != 'admin']
+        for client in filtered_data:
+            update_balance(client['client_id'], 3)
+
     if num == 1:
-        return render_template("myroom.html", is_in_room=is_in_room,username=username, client_list=clients_list,room_num=room_num, is_admin=is_admin,stop=stop)
+        return render_template("myroom.html", is_in_room=is_in_room,username=username, client_list=clients_list,room_num=room_num, is_admin=is_admin,stop=stop,ipfs=ipfs)
 
     room_num = -1
     is_admin = 0
@@ -230,7 +314,7 @@ def myroom():
                 user = find_user_by_id('users.json', client[0])
                 client[3] = user['key']
             break  # 如果is_in_room变为1，则退出循环
-    return render_template("myroom.html", is_in_room=is_in_room,username=username, client_list=clients_list,room_num=room_num, is_admin=is_admin,stop=stop)
+    return render_template("myroom.html", is_in_room=is_in_room,username=username, client_list=clients_list,room_num=room_num, is_admin=is_admin,stop=stop,ipfs=ipfs)
 
 def add_client_to_json(filename, userid, username, data_address, key):
     # 加载当前的用户列表
@@ -240,7 +324,7 @@ def add_client_to_json(filename, userid, username, data_address, key):
     # 创建新用户
     new_user = {
         "client_id": userid,
-        "client": 'client_'+username,
+        "client": '客户端_'+username,
         "data_address": data_address,
         "key": key
     }
@@ -270,7 +354,7 @@ def join():
     add_client_to_json('train_clients.json', user['id'], username, data_address, user['key'])
     
     client_data = {
-        'client':'client_'+username,
+        'client':'客户端_'+username,
         'client_id':user_id_from_session,
         'data_address':data_address
     }
@@ -284,8 +368,11 @@ def info():
     user = find_user_by_id('users.json', user_id_from_session)
     # user = User.query.filter_by(id=session[web_config.FRONT_USER_ID]).first()
     username = user['username']
-
-    return render_template('info.html', username=username, key=user['key'], balance=user['balance'])
+    key = user['key']
+    key_part1 = key[:len(key)//3]
+    key_part2 = key[len(key)//3:2*len(key)//3]
+    key_part3 = key[2*len(key)//3:]
+    return render_template('info.html', username=username, key_part1=key_part1,key_part2=key_part2,key_part3=key_part3, balance=user['balance'])
 
 @app.route('/update_user', methods=['GET', 'POST'])
 @login_required
@@ -313,4 +400,4 @@ def update_user():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port='5002')
+    app.run(debug=True, port='5006')
