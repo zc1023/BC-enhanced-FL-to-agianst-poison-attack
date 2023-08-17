@@ -177,7 +177,7 @@ def train():
         stop = parameters['room_num']
         with open("room_num.txt", "r") as file:
             num = int(file.read().strip())
-        if parameters['room_num'] == "cql的房间":
+        if parameters['room_num'] == "JXWh5F32nyRU6fZmekt7VY":
             parameters['room_num'] = str(num-1)
         filename = 'room'+parameters['room_num']+ ".json"
 
@@ -204,13 +204,15 @@ def create():
             'seed': request.form.get('seed'),
             'optimizer': request.form.get('optimizer'),
             'validation_nodes_num': request.form.get('validation_nodes_num'),
-            'model': request.form.get('model')
+            'model': request.form.get('model'),
+            'money': request.form.get('money')
         }
         with open("room_num.txt", "r") as file:
             num = int(file.read().strip())
         filename = 'room'+str(num) + ".json"
         
         if num != 1:
+            return render_template('creation.html', username=username, stop=stop, is_in_room=1) 
             room_num = -1
             is_admin = 0
             is_in_room = 0
@@ -286,7 +288,7 @@ def myroom():
     if request.method == 'POST':
         # main.train()
         stop = 1
-        ipfs = "ipfs address"
+        ipfs = "/ipfs/QmT5NvUtoM5nWFfrQdVrFtvGfKFmG7AHE8P34isapyhCxX"
         filename = 'room' + str(num-1) + ".json"
         with open(filename, 'r') as file:
             data = json.load(file)
@@ -400,4 +402,4 @@ def update_user():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port='5006')
+    app.run(debug=True, port='5007')

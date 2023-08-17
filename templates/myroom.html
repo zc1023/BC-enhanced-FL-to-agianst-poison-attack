@@ -131,7 +131,7 @@
                                     {% if is_in_room %}
                                     <div class="layui-input-inline lafite_search layui-show-xs-block">
                                         <fieldset class="layui-elem-field layui-field-title" style="margin-top: 0px;">
-                                            <legend>当前房间号: cql的房间</legend>
+                                            <legend>当前房间号: JXWh5F32nyRU6fZmekt7VY</legend>
                                         </fieldset>
                                     {% if is_admin %}
                                     <form action="/myroom" method="post">
@@ -376,60 +376,85 @@ layui.use(['element', 'layer'], function(){
     var epochDurations = [4, 7, 6, 5, 8, 7, 6, 6, 7, 7];
 
     function updateTimer() {
-    var elapsedMinutes = Math.floor(elapsedTime / 60);
-    var elapsedSeconds = (elapsedTime % 60).toFixed(2);  // Keep two decimal places
-    document.getElementById("timeElapsed").innerText = "已用时间: " + (elapsedMinutes < 10 ? "0" : "") + elapsedMinutes + ":" + (elapsedSeconds < 10 ? "0" : "") + elapsedSeconds;
+        var elapsedMinutes = Math.floor(elapsedTime / 60);
+        var elapsedSeconds = Math.floor(elapsedTime % 60);
+        document.getElementById("timeElapsed").innerText = "已用时间: " + (elapsedMinutes < 10 ? "0" : "") + elapsedMinutes + ":" + (elapsedSeconds < 10 ? "0" : "") + elapsedSeconds;
 
-    var remainingTime = totalTime - elapsedTime;
-    var remainingMinutes = Math.floor(remainingTime / 60);
-    var remainingSeconds = (remainingTime % 60).toFixed(2);  // Keep two decimal places
-    document.getElementById("timeRemaining").innerText = "预计剩余时间: " + (remainingMinutes < 10 ? "0" : "") + remainingMinutes + ":" + (remainingSeconds < 10 ? "0" : "") + remainingSeconds;
+        var remainingTime = totalTime - elapsedTime;
+        var remainingMinutes = Math.floor(remainingTime / 60);
+        var remainingSeconds = Math.floor(remainingTime % 60);
+        document.getElementById("timeRemaining").innerText = "预计剩余时间: " + (remainingMinutes < 10 ? "0" : "") + remainingMinutes + ":" + (remainingSeconds < 10 ? "0" : "") + remainingSeconds;
 
-    document.getElementById("progressText").innerText = "Epoch: " + epochsCompleted + "/10";
-}
-
-function increaseProgress() {
-    if (epochsCompleted < 10) {
-        var currentDuration = epochDurations[epochsCompleted];
-        var intervalCount = currentDuration * 10;  // update every 0.1 second
-        var progressIncrement = 10 / intervalCount;  // incremental progress for each interval
-
-        var intervalId = setInterval(function() {
-            progress += progressIncrement;
-            elapsedTime += 0.1;
-            updateTimer();
-            element.progress('demo', progress.toFixed(2) + '%');
-
-            if (elapsedTime >= (epochDurations.slice(0, epochsCompleted + 1).reduce((a, b) => a + b, 0))) {
-                clearInterval(intervalId);
-                epochsCompleted += 1;
-                increaseProgress();
-            }
-        }, 100); // update every 0.1 second
-    } 
-    
-    // When all epochs are completed, make sure the progress is exactly 100%
-    if (epochsCompleted == 10) {
-        progress = 100;
-        element.progress('demo', '100%');  
-        updateTimer();
-        showIpfsAddress();
+        document.getElementById("progressText").innerText = "Epoch: " + epochsCompleted + "/10";
     }
-}
 
-function showIpfsAddress() {
-    var ipfsAddress = "{{ipfs}}";
+    function stallProcedure() {
+        totalTime += 3;  // Immediately add 2 seconds to total time
+        updateTimer();
+
+        setTimeout(function() {
+            var randomReduction = (Math.random() < 0.5) ? 1 : 1.5;
+            totalTime -= randomReduction;  // Reduce total time by either 1 or 2 seconds
+            updateTimer();
+        }, 2000);  // 4 seconds after stalling
+    }
+
+    function increaseProgress() {
+        if (epochsCompleted < 10) {
+            var currentDuration = epochDurations[epochsCompleted];
+            var intervalCount = currentDuration * 10; 
+            var progressIncrement = 10 / intervalCount;  
+
+            var intervalId = setInterval(function() {
+                progress += progressIncrement;
+                elapsedTime += 0.1;
+                updateTimer();
+                element.progress('demo', progress.toFixed(2) + '%');
+
+                if (elapsedTime >= (epochDurations.slice(0, epochsCompleted + 1).reduce((a, b) => a + b, 0))) {
+                    clearInterval(intervalId);
+                    // Introducing stall before increasing the epoch
+                    if (Math.random() < 0.5) {  // 50% chance to stall at epoch increment
+                        stallProcedure();
+                        setTimeout(() => {
+                            epochsCompleted += 1;
+                            increaseProgress();
+                        }, 2000);  
+                    } else {
+                        epochsCompleted += 1;
+                        increaseProgress();
+                    }
+                }
+            }, 100);
+        } 
+
+        if (epochsCompleted == 10) {
+            progress = 100;
+            element.progress('demo', '100%');  
+            updateTimer();
+            document.getElementById("timeRemaining").innerText = "预计剩余时间: 00:00";
+            showIpfsAddress();
+        }
+    }
+
+    function showIpfsAddress() {
+        var ipfsAddress = "{{ipfs}}";
         layer.open({
             title: '训练完成',
-            content: 'IPFS地址是: ' + "{{ipfs}}"
+            content: 'IPFS地址是: ' + ipfsAddress
         });
     }
 
     var is_train = {{ stop|tojson|safe }};
     if(is_train){
-        increaseProgress();  // Start the dynamic progress loading
+        increaseProgress(); 
     }
 });
+
+
+
+
+
 
 
 
