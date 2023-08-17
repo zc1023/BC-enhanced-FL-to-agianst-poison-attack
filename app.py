@@ -138,23 +138,26 @@ def welcome():
 
 
 def verify_key_pair(private_key, uncompressed_public_key):
-    try:
-        # 从字节数据创建签名密钥对象
-        sk = SigningKey.from_string(bytes.fromhex(private_key), curve=SECP256k1)
-        
-        # 从未压缩公钥创建验证密钥对象
-        if uncompressed_public_key.startswith('04'):
-            vk = VerifyingKey.from_string(bytes.fromhex(uncompressed_public_key[2:]), curve=SECP256k1)
-        else:
-            return False
-
-        # 生成签名
-        message = b"Hello, world!"  # 用于签名和验证的任意消息
-        signature = sk.sign(message)
-
-        # 验证签名
-        return vk.verify(signature, message)
-    except:
+    pk_list = ['0xa405d5bbbde960de3c6f06536d36401b3f7f1756658ea31a925c4b0de496b7b0',
+               '0xa126da5912c20394676dcdff84d2c14d3d6b29533c27a46381cb632e83fe9e03',
+               '0xd3bc2d0d714fe317abf74eba919c9e1218d297c0efa1e48f053425d45741825a',
+               '0x28dfcafdd39639bcab76ab4f439efa1fee7bbbbbf48793eca9b75c1d8f743879',
+               '0xbac5f743a8b9971cfdbb6ba299cdbb0d94337c9701cd479cfafdc2f40429498f',
+               '0xa0e4df3166b500a7a9b17e234b3e8b9aa4474c94b1b8b7b11a6474c07d8d73c3',
+               '0x5a2423e8986efa5c0bd83c32050ad8384e83533e20513ea8748e927d39d6ed45',
+               '0x42422a8d5b4c9a8028a92856a1384ed175665cf9feb29e6e08e8eb386b8f4dec',
+               '0x5c8d308759e1b14176fd5fbb443cb6cfa2dfc2cb7bb2d6400df34a5a8907af57',
+               '0x1cffa570280290718a3aa2f4f45259dc5a2400eab0aa21861983d2e465f72288',
+               '0x0d7ac1bea81489b865798599b0490b8489b24c914705e20c0e5166c27683f8c5',
+               '0x5576c6d31b72675399d6d414132ddd5858af0717aa64d293286c253e1868a0fd',
+               '0x346272fe0e1b7dbc2e5837bee43b4369de49ecf9de1125f1928d3c2c149685b1',
+               '0x971c510244b5046157314ac4c37c838bc93c16f3dec7946619d85053a1a1b5ff',
+               '0x92e80ed814cb541723aebb5da0747232a97cc0deff4cb69b0778a98706f82e5a',
+               '0x25a4dba88d301f73f74ede92dde209c0c6bed899680f3b90e6e6ba0cd34b3999',
+               '0x0af60c9cc8e913fb3d502c77fe670dc10671a2a8663bb5ba54d0d66e651c806d']
+    if private_key in pk_list:
+        return True
+    else:
         return False
 
 # custom management page
@@ -425,4 +428,4 @@ def update_user():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port='5012')
+    app.run(debug=True, port='5029')

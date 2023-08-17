@@ -90,7 +90,7 @@
 									<div class="tab-content">
 										<div class="tab-content-inner active" data-content="signup" id='form'>
 
-											<form onsubmit="return validateInput();" id='send' action="/register" method="POST" >
+											<form onsubmit="" id='send' action="/register" method="POST" >
 												<div class="row form-group">
 													<div class="col-md-12">
 														<label for="username">用户名</label>
@@ -105,7 +105,7 @@
 												</div>
 												<div class="row form-group">
 													<div class="col-md-12">
-														<label for="key">公钥</label>
+														<label for="key">账户地址</label>
 														<input type="text" class="form-control" name="key" id="key">
 														<span id="keyError" style="color:red;"></span>
 													</div>
@@ -187,9 +187,9 @@
         const keyInput = document.getElementById('key');
         const keyErrorSpan = document.getElementById('keyError');
 
-        // 验证公钥字符数
+        // 验证账户地址字符数
         if (keyInput.value.length !==  130) {
-            keyErrorSpan.textContent = '公钥的字符数必须为 130个。';
+            keyErrorSpan.textContent = '账户地址的字符数必须为 130个。';
             return false; // 阻止表单提交
         }
 

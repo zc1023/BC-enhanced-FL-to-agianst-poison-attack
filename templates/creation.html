@@ -109,7 +109,7 @@
                                     <div class="layui-card-body ">
                                         <form class="layui-form layui-col-space5" action="/create" method='POST'>
                                             <div class="layui-input-inline layui-show-xs-block">
-                                                <input type="text" name="batch_size" placeholder="批次大小" autocomplete="off" class="layui-input" required></div>
+                                                <input type="text" name="batch_size" placeholder="学习率" autocomplete="off" class="layui-input" required></div>
                                             <div class="layui-input-inline layui-show-xs-block">
                                                 <input type="text" name="local_epoch_num" placeholder="局部迭代轮数" autocomplete="off" class="layui-input" required></div>
                                             <div class="layui-input-inline layui-show-xs-block">
@@ -119,7 +119,7 @@
                                             <div class="layui-input-inline layui-show-xs-block">
                                                 <input type="text" name="optimizer" placeholder="优化器" autocomplete="off" class="layui-input" required></div>
                                             <div class="layui-input-inline layui-show-xs-block">
-                                                <input type="text" name="validation_nodes_num" placeholder="验证节点数" autocomplete="off" class="layui-input" required></div>
+                                                <input type="text" name="validation_nodes_num" placeholder="检测者比例" autocomplete="off" class="layui-input" required></div>
                                             <div class="layui-input-inline layui-show-xs-block">
                                                 <input type="text" name="model" placeholder="模型" autocomplete="off" class="layui-input" required></div>
                                                 <div class="layui-input-inline layui-show-xs-block">
@@ -309,7 +309,7 @@ layui.use(['element', 'layer'], function(){
         var Msg = "房间创建成功，房间号为 FS3xgqGDHiDJQdstXBkfLN";
         
         layer.open({
-            title: '错误',
+            title: '创建成功',
             content: Msg
         });
     }
