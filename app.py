@@ -262,7 +262,7 @@ def update_balance(user_id, change_amount):
     
     for user in users:
         if user["id"] == user_id:
-            user["balance"] -= change_amount  # 减少余额，可以调整为 += 来增加余额
+            user["balance"] += change_amount  # 增加余额
 
     with open("users.json", "w") as file:
         json.dump(users, file)
@@ -293,8 +293,31 @@ def myroom():
         with open(filename, 'r') as file:
             data = json.load(file)
         filtered_data = [entry for entry in data if entry['data_address'] != 'admin']
-        for client in filtered_data:
-            update_balance(client['client_id'], 3)
+        number_of_clients = len(filtered_data)
+
+        if number_of_clients == 10:
+            # 扣除最后四个client的钱
+            deductions = [random.uniform(2, 3) for _ in range(4)]
+    
+            # 确保扣除的四个数都不相同
+            while len(set(deductions)) != 4:
+                deductions = [random.uniform(2, 3) for _ in range(4)]
+    
+            total_deduction = sum(deductions)
+    
+            # 更新最后四个client的余额
+            for i, client in enumerate(filtered_data[-4:]):
+                update_balance(client['client_id'], -deductions[i])
+    
+            # 将扣除的金额均分给前六个client
+            per_client_addition = total_deduction / 6
+            for client in filtered_data[:6]:
+                amount_to_add = per_client_addition + random.uniform(-0.0000001, 0.0000001)
+                amount_to_add = round(amount_to_add, 7)
+                update_balance(client['client_id'], amount_to_add)
+
+        elif number_of_clients < 10:
+            pass
 
     if num == 1:
         return render_template("myroom.html", is_in_room=is_in_room,username=username, client_list=clients_list,room_num=room_num, is_admin=is_admin,stop=stop,ipfs=ipfs)
@@ -402,4 +425,4 @@ def update_user():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port='5007')
+    app.run(debug=True, port='5008')
