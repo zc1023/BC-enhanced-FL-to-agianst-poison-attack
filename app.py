@@ -291,7 +291,7 @@ def myroom():
     if request.method == 'POST':
         # main.train()
         stop = 1
-        ipfs = "/ipfs/QmT5NvUtoM5nWFfrQdVrFtvGfKFmG7AHE8P34isapyhCxX"
+        ipfs = "QmcabnRUEA3LQn1uSqmsvjd5fUY7WbjXP7qZD1y9gLkdpi"
         filename = 'room' + str(num-1) + ".json"
         with open(filename, 'r') as file:
             data = json.load(file)

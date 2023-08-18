@@ -1,0 +1,1 @@
+{'batch_size': '11', 'local_epoch_num': '1', 'global_epoch': '1', 'seed': '1', 'optimizer': '1', 'validation_nodes_num': '1', 'model': '1', 'money': '11'}
