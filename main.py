@@ -29,7 +29,7 @@ def set_seed(seed=0):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
-def train(web_args):
+if __name__ == '__main__':
     args = create_argparser().parse_args()
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     batchsize = args.batch_size

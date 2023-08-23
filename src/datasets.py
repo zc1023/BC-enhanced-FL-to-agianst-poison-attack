@@ -16,6 +16,8 @@ import shutil
 from torchvision.datasets import MNIST,CIFAR10
 from torchvision.transforms.functional import to_pil_image
 import random
+import pandas as pd
+import torch
 
 class LocalDataset(Dataset):
     def __init__(self,data_dir,transform=None,flip_malicous_rate=0.0,backdoor_rate=0.0):
@@ -47,11 +49,30 @@ class LocalDataset(Dataset):
             if label == 3:
                 label = 8
 
-
         if p < self.backdoor_rate:
             image[:4,:4,:] = 0
             label = 8
         return image, label
+
+class TextDataset(Dataset):
+    def __init__(self,data) -> None:
+        super().__init__()
+        draft = pd.read_csv(data)
+        self.data = draft.values
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        features = torch.tensor(self.data[index][1:-1],dtype=torch.float32)
+        # from sklearn.preprocessing import RobustScaler
+        # rs = RobustScaler()
+        # features = rs.fit_transform(features)
+        label = torch.tensor(self.data[index][-1],dtype=torch.float32) 
+
+        return features,label
+
+
 
 def split_mnist_by_class(mnist_dir, output_dir):
     
@@ -99,6 +120,10 @@ def create_iid(datadir,storedir,intervals = 3,n=10):
                 os.makedirs(storesubdir)
             dst_file_path = os.path.join(storesubdir,file)
             shutil.copy(file_path,dst_file_path)
+
+# def create_loan_iid(datacsv,storedir,intervals = 3,n = 10):
+#     data = pd.read_csv(datacsv)
+
 
 
 if __name__ =='__main__':

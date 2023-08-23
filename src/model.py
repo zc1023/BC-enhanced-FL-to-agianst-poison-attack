@@ -113,9 +113,57 @@ class Cifar10CNN(nn.Module):
 
         return x
 
+# class MLPLoan(nn.Module):
+#     def __init__(self):
+#         super(MLPLoan,self).__init__()
+#         self.norm = nn.BatchNorm1d(195)
+#         self.fc1 = nn.Linear(195, 320)
+#         self.relu1 = nn.ReLU()
+#         self.fc2 = nn.Linear(320, 160)
+#         self.relu2 = nn.ReLU()
+#         self.fc3 = nn.Linear(160, 80)
+#         self.relu3 = nn.ReLU()
+#         self.fc4 = nn.Linear(80, 40)
+#         self.relu4 = nn.ReLU()
+#         self.fc5 = nn.Linear(40, 20)
+#         self.relu5 = nn.ReLU()
+#         self.fc6 = nn.Linear(20, 2)
+#     def forward(self, x):
+#         x = self.norm(x)
+#         out = self.fc1(x)
+#         out = self.relu1(out)
+#         out = self.fc2(out)
+#         out = self.relu2(out)
+#         out = self.fc3(out)
+#         out = self.relu3(out)
+#         out = self.fc4(out)
+#         out = self.relu4(out)
+#         out = self.fc5(out)
+#         out = self.relu5(out)
+#         out = self.fc6(out)
+#         return out
 
+class MLPLoan(nn.Module):
+    def __init__(self):
+        super(MLPLoan, self).__init__()
+        self.fc1 = nn.Linear(195, 100)
+        self.fc2 = nn.Linear(100, 50)
+        self.fc3 = nn.Linear(50, 2)
+        self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
+        self.norm = nn.BatchNorm1d(195)
+
+    def forward(self, x):
+        x = self.norm(x)
+        x = self.fc1(x)
+        x = self.relu(x)
+        x = self.fc2(x)
+        x = self.relu(x)
+        x = self.fc3(x)
+        x = self.sigmoid(x)
+        return x
 if __name__ == '__main__':
-
+    pass
     # mlp = MNISTCNN()
 
     # num_epochs = 5
@@ -170,6 +218,77 @@ if __name__ == '__main__':
     #         total += labels.size(0)
     #         correct += (predicted == labels).sum().item()
     #     print('测试准确率: {:.4f}'.format(100.0*correct/total))
-    from torchsummary import summary
-    model = Cifar10CNN().to('cuda')
-    summary(model,input_size=(3,32,32),batch_size=32)
+    # from torchsummary import summary
+    # model = Cifar10CNN().to('cuda')
+    # summary(model,input_size=(3,32,32),batch_size=32)
+
+    from datasets import TextDataset
+    from torch.utils.data import DataLoader
+    from torch.optim.lr_scheduler import StepLR
+    dataset = TextDataset("/home/v-zhoucha/BC-enhanced-FL-to-agianst-poison-attack/data/kaggle_loans/2/backdoor.csv")
+    dataloader = DataLoader(dataset=dataset, # 传入的数据集, 必须参数
+                               batch_size=512,       # 输出的batch大小
+                               shuffle=True,       # 数据是否打乱
+                               num_workers=0)      # 进程数, 0表示只有主进程
+    validdata = TextDataset("/home/v-zhoucha/BC-enhanced-FL-to-agianst-poison-attack/data/kaggle_loans/valid.csv")
+    validdataloader = DataLoader(
+        dataset=validdata,
+        batch_size=512,       # 输出的batch大小
+        shuffle=True,       # 数据是否打乱
+        num_workers=0
+    )
+    model = MLPLoan().to("cuda")
+    num_epochs = 50
+    batch_size = 1024 # Recall that we set it before
+    learning_rate = 0.01
+    criterion = nn.CrossEntropyLoss()  
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    scheduler = StepLR(optimizer, step_size=30, gamma=0.9)
+
+    model.eval()
+    correct = 0
+    for data in validdataloader:
+        features = data[0].to("cuda")
+        labels = data[1].type(torch.LongTensor).to("cuda")
+        # input(features)
+        # input(labels)
+        output = model(features)
+        _,output = torch.max(output, 1)
+        # print(output.shape)
+        correct += (output == labels).sum().item()
+    print(correct/len(validdata))
+
+    for epoch in range(num_epochs):
+        model.train()
+        train_loss = 0
+        correct = 0
+        for data in dataloader:
+            # input(data)
+            features = data[0].to("cuda")
+            labels = data[1].type(torch.LongTensor).to("cuda")
+            # input(features.shape)
+            # input(labels.shape)
+            output = model(features)
+            
+            loss = criterion(output,labels)
+            _,output = torch.max(output, 1)
+            # print(output.shape)
+            correct += (output == labels).sum().item()
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step() 
+            train_loss+=loss
+        # scheduler.step()
+        print(f"train_loss = {train_loss},train_acc={correct/len(dataset)}")
+        model.eval()
+        correct = 0
+        for data in validdataloader:
+            features = data[0].to("cuda")
+            labels = data[1].type(torch.LongTensor).to("cuda")
+
+            output = model(features)
+            _,output = torch.max(output, 1)
+            # print(output.shape)
+            correct += (output == labels).sum().item()
+        print(correct/len(validdata))
+    
