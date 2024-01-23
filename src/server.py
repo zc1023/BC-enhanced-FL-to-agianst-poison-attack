@@ -3,6 +3,7 @@ Author: Chao
 Date: 2023.03.14
 This file contains the class of server, whose main resonsibility is to aggregate models
 """
+from .units import model_params_to_matrix
 import torch
 import numpy as np 
 import random
@@ -164,3 +165,76 @@ class Server(object):
         torch.save(result,global_model_path)
         return result
     
+    def trimmed_mean(self,ckpt_path,bengin_client_ids,global_model_path):
+        local_models = []
+        for bengin_client_id in bengin_client_ids:
+            file = os.path.join(ckpt_path,bengin_client_id+'.ckpt')
+            ckpt = torch.load(file)
+            self.model.load_state_dict(ckpt)
+            local_model = model_params_to_matrix(self.model).view(-1)
+            local_models.append(local_model)
+        num_nodes = len(bengin_client_ids)
+        distances = torch.zeros(num_nodes,num_nodes)
+        for i in range(num_nodes):
+            for j in range(i + 1, num_nodes):
+                distances[i, j] = torch.norm(local_models[i] - local_models[j])
+                distances[j, i] = distances[i, j]
+        # 计算每个节点的可靠性分数
+        reliability_scores = torch.sum(distances, dim=1)
+        # input(reliability_scores)
+        # 选择可靠性最高的节点
+        selected_nodes = torch.argsort(reliability_scores)[1:9]
+        # input(selected_nodes)
+        avg_ids = [bengin_client_ids[i] for i in selected_nodes]
+        # input(avg_ids)
+        result = self.fed_avg(ckpt_path,avg_ids,global_model_path)
+        return result
+
+
+    def median(self,ckpt_path,bengin_client_ids,global_model_path):
+        ckpts =[]
+        for bengin_client_id in bengin_client_ids:
+            file = os.path.join(ckpt_path,bengin_client_id+'.ckpt')
+            ckpt = torch.load(file)
+            ckpts.append(ckpt)
+
+        median_dict = OrderedDict()
+        for k in ckpt.keys():
+            values = [d[k] for d in ckpts]
+            # input(values)
+            median_tensor = torch.median(torch.stack(values), dim=0).values
+            median_dict[k] = median_tensor
+        torch.save(median_dict,global_model_path)
+        return median_dict
+    
+
+
+
+    def krum(self,ckpt_path,bengin_client_ids,global_model_path):
+        local_models = []
+        for bengin_client_id in bengin_client_ids:
+            file = os.path.join(ckpt_path,bengin_client_id+'.ckpt')
+            ckpt = torch.load(file)
+            self.model.load_state_dict(ckpt)
+            local_model = model_params_to_matrix(self.model).view(-1)
+            local_models.append(local_model)
+        num_nodes = len(bengin_client_ids)
+        distances = torch.zeros(num_nodes,num_nodes)
+        for i in range(num_nodes):
+            for j in range(i + 1, num_nodes):
+                distances[i, j] = torch.norm(local_models[i] - local_models[j])
+                distances[j, i] = distances[i, j]
+        # 计算每个节点的可靠性分数
+        reliability_scores = torch.sum(distances, dim=1)
+        # input(reliability_scores)
+        # 选择可靠性最高的节点
+        selected_nodes = torch.argsort(reliability_scores)[:8]
+        # input(selected_nodes)
+        avg_ids = [bengin_client_ids[i] for i in selected_nodes]
+        # input(avg_ids)
+        result = self.fed_avg(ckpt_path,avg_ids,global_model_path)
+        return result
+        
+    def bulyan(self,ckpt_path,bengin_client_ids,global_model_path):
+        pass
+

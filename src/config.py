@@ -34,7 +34,7 @@ def create_argparser():
         flipping_attack_num = 0,
         grad_zero_num = 0,
         grad_scale_num = 0,
-        backdoor_num = 1,
+        backdoor_num = 0,
     )
 
     defaults_clients_args = dict(
@@ -45,18 +45,19 @@ def create_argparser():
 
     defaults = dict(
         datasets = 'CIFAR10',
-        project_name = 'BC-enhanced-FL-to-against-poison-attack-dbscan',
+        project_name = 'BC-enhanced-FL-to-against-poison-attack-2024',
         model = 'Cifar10CNN',
         seed = 10,
-        batch_size = 32,
-        epoch_num = 10,
+        batch_size = 64,
+        epoch_num = 100,
         local_epoch_num = 2,
         data_type = 'iid',
         optimizer = 'sgd',
         lr = 1e-2,
-        eva_type = "BSAR",
+        eva_type = "ACC", #ACC,FSAR,BSAR
+        aggregate_type = "trimmed_mean", #fedavg, krum, median, trimmed_mean
         wandb_log = False,
-        wandb_resume = True,
+        wandb_resume = False,
     )
     defaults.update(defaults_clients_args)
     defaults.update(defaults_clients_num)
