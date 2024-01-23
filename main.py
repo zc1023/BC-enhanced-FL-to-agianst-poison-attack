@@ -32,12 +32,13 @@ def set_seed(seed=0):
 if __name__ == '__main__':
     args = create_argparser().parse_args()
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    print(device)
     batchsize = args.batch_size
     local_epoch = args.local_epoch_num
     datasets = args.datasets
     Type = args.data_type
     set_seed(args.seed)
-    exp_name = f'Exp_{args.data_type}_{args.datasets}_{args.optimizer}_{args.seed}_validation_nodes_num_{args.validation_nodes_num}_flipping_attack_num_{args.flipping_attack_num}_grad_zero_num_{args.grad_zero_num}_grad_scale_num_{args.grad_scale_num}_backdoor_num_{args.backdoor_num}'
+    exp_name = f'Exp_{args.aggregate_type}_{args.datasets}_{args.optimizer}_{args.seed}_validation_nodes_num_{args.validation_nodes_num}_flipping_attack_num_{args.flipping_attack_num}_grad_zero_num_{args.grad_zero_num}_grad_scale_num_{args.grad_scale_num}_backdoor_num_{args.backdoor_num}'
     
     if not os.path.exists(f'log/{exp_name}'):
         os.makedirs(f'log/{exp_name}')
@@ -70,12 +71,13 @@ if __name__ == '__main__':
     if args.wandb_log:
         if args.project_name is None:
             raise ValueError("args.log_to_wandb set to True but args.project_name is None")
-
+        wandb.login(key="e4e589404b17bba5529eddc713acadc000206fbc")
         run = wandb.init(
+            
             project = args.project_name,
             config = vars(args),
             name = exp_name,
-            resume= True,
+            resume= args.wandb_resume,
         )
         wandb.watch(server.model)    
     # =====
@@ -139,8 +141,8 @@ if __name__ == '__main__':
     beta_init = 0.2
 
     ''' resume '''
+    max = -1
     if args.wandb_resume:
-        max = -1
         folder_path = f'log/{exp_name}/score/{Type}/'
         for root,dirs,files in os.walk(folder_path):
             for file in files:
@@ -211,8 +213,16 @@ if __name__ == '__main__':
             benign_clients,validation_clients = server.select(globalscore_path)
         else:
             benign_clients = train_ids
-                
-        server.fed_avg(ckpt_dir,benign_clients,globalmodel_path)
+        if args.aggregate_type == "fedavg":
+            server.fed_avg(ckpt_dir,benign_clients,globalmodel_path)
+        elif args.aggregate_type == "krum":
+            server.krum(ckpt_dir,benign_clients,globalmodel_path)
+        elif args.aggregate_type == "median":
+            server.median(ckpt_dir,benign_clients,globalmodel_path)
+        elif args.aggregate_type == "trimmed_mean":
+            server.trimmed_mean(ckpt_dir,benign_clients,globalmodel_path)
+        else:
+            raise(TypeError)
         server.get_globalmodel(globalmodel_path)
         testloss,testacc = server.evaluate()
         if args.wandb_log:
