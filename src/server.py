@@ -61,7 +61,7 @@ class Server(object):
         torch.save(self.model.state_dict(),ckpt_path)
     def get_globalmodel(self,globalmodel_ckpt_file):
         globalmodel_ckpt = torch.load(globalmodel_ckpt_file)
-        self.model.load_state_dict(globalmodel_ckpt)
+        self.model.load_state_dict(globalmodel_ckpt,strict=False)
 
     def evaluate(self):
         """
@@ -75,8 +75,8 @@ class Server(object):
         with torch.no_grad():
             for data, labels in self.dataloader:
                 data, labels = data.float().to(self.device), labels.long().to(self.device)
-                if self.eva_type == "BSAR":
-                    data[:,:,:4,:4]=0.0    
+                # if self.eva_type == "BSAR":
+                #     data[:,:,:4,:4]=0.0    
                 outputs = self.model(data)
                 test_loss += self.criterion(outputs, labels).item()
                 
@@ -120,20 +120,30 @@ class Server(object):
             '''DBSCAN'''
             from sklearn.cluster import DBSCAN
             from sklearn.preprocessing import scale
-            values = scale(values).reshape(-1,1)
-            clustering = DBSCAN(eps=0.7, min_samples=3).fit(values)
+            from sklearn.preprocessing import MinMaxScaler
+
+            # values = scale(values).reshape(-1,1)
+            minmaxscaler = MinMaxScaler()
+            values = minmaxscaler.fit_transform((values).reshape(-1,1))
+            # values = values.reshape(-1,1)
+            print(values)
+            clustering = DBSCAN(eps=0.15, min_samples=3).fit(values)
             labels = clustering.labels_
+            print(labels)
             threshold=-1
             for i in range(len(labels)-1,-1,-1):
                 if labels[i]==0:
                     threshold = i
                     break
-            # print(threshold)
+            print(threshold)
             benign_clients = list(ordered_score.keys())[:threshold+1]
 
         validation_clients = benign_clients[:self.validation_nodes_num]
         if len(benign_clients) < self.validation_nodes_num:
             warnings.warn('benign clients number is less than validation clients number')
+            benign_clients = list(ordered_score.keys())[:self.validation_nodes_num+1]
+            validation_clients = benign_clients[:self.validation_nodes_num]
+        
         return benign_clients,validation_clients
 
     def avg_scores(self,scores_path,valide_client_ids,global_scores_path):

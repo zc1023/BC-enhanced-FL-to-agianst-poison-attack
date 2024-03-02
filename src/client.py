@@ -71,7 +71,7 @@ class Client(object):
 
     def get_globalmodel(self,globalmodel_ckpt_file):
         globalmodel_ckpt = torch.load(globalmodel_ckpt_file)
-        self.model.load_state_dict(globalmodel_ckpt)
+        self.model.load_state_dict(globalmodel_ckpt,strict=False)
     
     def save_model(self,localmodel_ckpt_path):                
         torch.save(self.model.state_dict(),localmodel_ckpt_path)

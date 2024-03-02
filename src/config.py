@@ -44,9 +44,9 @@ def create_argparser():
     )
 
     defaults = dict(
-        datasets = 'CIFAR10',
+        datasets = 'mnist',# mnist, CIFAR10,svhn
         project_name = 'BC-enhanced-FL-to-against-poison-attack-2024',
-        model = 'Cifar10CNN',
+        model = 'MNISTCNN', #MNISTCNN, CIFAR10CNN
         seed = 10,
         batch_size = 64,
         epoch_num = 100,
